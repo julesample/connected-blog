@@ -1,0 +1,4 @@
+{
+  "name": "Connected-Blog",
+  "description": "A full-stack blog platform powered by React and Gemini. Features multi-user registration, public user profiles, AI-assisted content creation, and interactive posts with voting and full comment CRUD functionality."
+}
