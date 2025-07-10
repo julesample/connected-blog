@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 import * as authService from '../services/authService';
 import { useToast } from './ToastContext';
 import { User } from '../types';
+import { supabase } from '../services/supabase';
 
 const USER_SESSION_KEY = 'gemini-cms-session-user';
 
@@ -70,6 +71,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(() => {
     try {
       sessionStorage.removeItem(USER_SESSION_KEY);
+      // Sign out from Supabase as well
+      supabase.auth.signOut();
       setCurrentUser(null);
       showToast('You have been logged out.', 'info');
     } catch (error) {
