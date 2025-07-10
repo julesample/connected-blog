@@ -9,9 +9,9 @@ const USER_SESSION_KEY = 'gemini-cms-session-user';
 
 interface UserContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (username: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string) => Promise<boolean>;
   checkUserSession: () => void;
   updateUserProfile: (data: Partial<User> & { currentPassword?: string, newPassword?: string }) => Promise<boolean>;
 }
@@ -24,22 +24,32 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const checkUserSession = useCallback(async () => {
     try {
-      const username = sessionStorage.getItem(USER_SESSION_KEY);
-      if(username) {
-        const userProfile = await authService.getProfile(username);
-        if(userProfile) {
+      // Check Supabase session first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Get user profile from our custom table
+        const userProfile = await authService.getProfileByEmail(session.user.email!);
+        if (userProfile) {
           setCurrentUser(userProfile);
+          sessionStorage.setItem(USER_SESSION_KEY, userProfile.username);
         } else {
-          logout();
+          // User exists in auth but not in our table, sign out
+          await supabase.auth.signOut();
+          sessionStorage.removeItem(USER_SESSION_KEY);
         }
+      } else {
+        // No session, clear everything
+        sessionStorage.removeItem(USER_SESSION_KEY);
+        setCurrentUser(null);
       }
     } catch {
       setCurrentUser(null);
+      sessionStorage.removeItem(USER_SESSION_KEY);
     }
   }, []);
 
-  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
-    const user = await authService.loginUser(username, password);
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const user = await authService.loginUser(email, password);
     if (user) {
       try {
         sessionStorage.setItem(USER_SESSION_KEY, user.username);
@@ -57,8 +67,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [showToast]);
   
-  const register = useCallback(async (username: string, password: string): Promise<boolean> => {
-    const result = await authService.registerUser(username, password);
+  const register = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const result = await authService.registerUser(email, password);
     if (result.success) {
       showToast('Registration successful! Please log in.', 'success');
       return true;

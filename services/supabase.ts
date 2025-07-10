@@ -23,7 +23,7 @@ export interface Database {
         Row: {
           id: string;
           username: string;
-          password_hash: string;
+          email: string;
           bio: string;
           created_at: string;
           updated_at: string;
@@ -31,7 +31,7 @@ export interface Database {
         Insert: {
           id?: string;
           username: string;
-          password_hash: string;
+          email: string;
           bio?: string;
           created_at?: string;
           updated_at?: string;
@@ -39,7 +39,7 @@ export interface Database {
         Update: {
           id?: string;
           username?: string;
-          password_hash?: string;
+          email?: string;
           bio?: string;
           created_at?: string;
           updated_at?: string;

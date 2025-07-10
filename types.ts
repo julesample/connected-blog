@@ -21,7 +21,7 @@ export interface Post {
 
 export interface User {
   username: string;
-  passwordHash: string;
+  email: string;
   bio?: string;
 }
 
