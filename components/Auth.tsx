@@ -4,53 +4,27 @@ import { useToast } from '../context/ToastContext';
 
 const Auth: React.FC = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
-  const [num1, setNum1] = useState(0);
-  const [num2, setNum2] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { login, register } = useUser();
   const { showToast } = useToast();
 
-  const generateCaptcha = useCallback(() => {
-    setNum1(Math.floor(Math.random() * 10) + 1);
-    setNum2(Math.floor(Math.random() * 10) + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoginMode) {
-      generateCaptcha();
-    }
-  }, [isLoginMode, generateCaptcha]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       return;
     }
     setIsLoading(true);
 
     if (isLoginMode) {
-      await login(username, password);
+      await login(email, password);
     } else {
-      if (parseInt(captchaAnswer, 10) !== num1 + num2) {
-        showToast('Incorrect captcha answer. Please try again.', 'error');
-        generateCaptcha();
-        setCaptchaAnswer('');
-        setIsLoading(false);
-        return;
-      }
-      const success = await register(username, password);
+      const success = await register(email, password);
       if(success) {
         // Switch to login mode after successful registration
         setIsLoginMode(true);
         setPassword('');
-        setCaptchaAnswer('');
-      } else {
-        // If registration fails (e.g., username taken), generate new captcha
-        generateCaptcha();
-        setCaptchaAnswer('');
       }
     }
     setIsLoading(false);
@@ -58,9 +32,8 @@ const Auth: React.FC = () => {
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
-    setUsername('');
+    setEmail('');
     setPassword('');
-    setCaptchaAnswer('');
   }
 
   return (
@@ -75,20 +48,20 @@ const Auth: React.FC = () => {
         <div className="bg-white dark:bg-slate-800 shadow-2xl rounded-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100">
+                Email
               </label>
               <div className="mt-2">
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   className="block w-full rounded-md border-0 bg-white/5 dark:bg-white/5 py-2.5 px-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
-                  placeholder="e.g., JaneDoe"
+                  placeholder="e.g., jane@example.com"
                 />
               </div>
             </div>
@@ -112,31 +85,10 @@ const Auth: React.FC = () => {
               </div>
             </div>
             
-            {!isLoginMode && (
-               <div>
-                <label htmlFor="captcha" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100">
-                  Security Check: What is {num1} + {num2}?
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="captcha"
-                    name="captcha"
-                    type="number"
-                    value={captchaAnswer}
-                    onChange={e => setCaptchaAnswer(e.target.value)}
-                    required
-                    className="block w-full rounded-md border-0 bg-white/5 dark:bg-white/5 py-2.5 px-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
-                    placeholder="Your answer"
-                  />
-                </div>
-              </div>
-            )}
-
-
             <div>
               <button
                 type="submit"
-                disabled={!username.trim() || !password.trim() || isLoading || (!isLoginMode && !captchaAnswer.trim())}
+                disabled={!email.trim() || !password.trim() || isLoading}
                 className="flex w-full justify-center rounded-md bg-primary-600 px-3 py-2.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {isLoading ? 'Processing...' : (isLoginMode ? 'Sign In' : 'Create Account')}
@@ -151,7 +103,7 @@ const Auth: React.FC = () => {
             </button>
         </p>
          <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
-            User data is stored locally in your browser for demonstration.
+            Your account will be created with Supabase authentication.
         </p>
       </div>
     </div>

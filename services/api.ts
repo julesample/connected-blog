@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 
 // --- User API ---
 
-export const createUser = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
+export const createUser = async (username: string, email: string, authId: string): Promise<{ success: boolean; message: string }> => {
   try {
     // Check if username already exists
     const { data: existingUser } = await supabase
@@ -16,15 +16,13 @@ export const createUser = async (username: string, password: string): Promise<{ 
       return { success: false, message: 'Username is already taken.' };
     }
 
-    // Hash password (in production, use proper hashing like bcrypt)
-    const passwordHash = await _mockHash(password);
-
     // Create user in database
     const { error } = await supabase
       .from('users')
       .insert({
+        id: authId, // Use Supabase auth user ID
         username,
-        password_hash: passwordHash,
+        email,
         bio: ''
       });
 
@@ -40,26 +38,23 @@ export const createUser = async (username: string, password: string): Promise<{ 
   }
 };
 
-export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
+export const getUserByEmail = async (email: string): Promise<User | null> => {
   try {
     const { data: user } = await supabase
       .from('users')
       .select('*')
-      .eq('username', username)
+      .eq('email', email)
       .maybeSingle();
 
     if (!user) return null;
 
-    const inputPasswordHash = await _mockHash(password);
-    if (user.password_hash !== inputPasswordHash) return null;
-
     return {
       username: user.username,
-      passwordHash: user.password_hash,
+      email: user.email,
       bio: user.bio
     };
   } catch (error) {
-    console.error('Error in authenticateUser:', error);
+    console.error('Error in getUserByEmail:', error);
     return null;
   }
 };
@@ -76,7 +71,7 @@ export const getUserByUsername = async (username: string): Promise<User | null> 
 
     return {
       username: user.username,
-      passwordHash: user.password_hash,
+      email: user.email,
       bio: user.bio
     };
   } catch (error) {
@@ -103,21 +98,6 @@ export const updateUser = async (
 
     let updateData: any = {};
 
-    // Password change logic
-    if (data.newPassword) {
-      if (!data.currentPassword) {
-        return { success: false, message: 'Current password is required to set a new one.' };
-      }
-      if (data.newPassword.length < 6) {
-        return { success: false, message: 'New password must be at least 6 characters.' };
-      }
-      const currentPasswordHash = await _mockHash(data.currentPassword);
-      if (currentPasswordHash !== user.password_hash) {
-        return { success: false, message: 'Incorrect current password.' };
-      }
-      updateData.password_hash = await _mockHash(data.newPassword);
-    }
-
     // Bio change logic
     if (typeof data.bio !== 'undefined') {
       updateData.bio = data.bio;
@@ -140,7 +120,7 @@ export const updateUser = async (
       success: true,
       user: {
         username: updatedUser.username,
-        passwordHash: updatedUser.password_hash,
+        email: updatedUser.email,
         bio: updatedUser.bio
       }
     };
@@ -487,19 +467,6 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
 };
 
 // --- Utility Functions ---
-
-/** Insecure hash simulation - replace with proper hashing in production */
-const _mockHash = async (password: string): Promise<string> => {
-  try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch {
-    return `hashed_${password}`;
-  }
-};
 
 // Transform database post to application format
 const transformPostFromDB = (dbPost: any): Post => {
