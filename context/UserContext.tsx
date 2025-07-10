@@ -11,7 +11,7 @@ interface UserContextType {
   currentUser: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  register: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, username: string, password: string) => Promise<boolean>;
   checkUserSession: () => void;
   updateUserProfile: (data: Partial<User> & { currentPassword?: string, newPassword?: string }) => Promise<boolean>;
 }
@@ -67,8 +67,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [showToast]);
   
-  const register = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const result = await authService.registerUser(email, password);
+  const register = useCallback(async (email: string, username: string, password: string): Promise<boolean> => {
+    const result = await authService.registerUser(email, username, password);
     if (result.success) {
       showToast('Registration successful! Please log in.', 'success');
       return true;
