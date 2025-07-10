@@ -10,7 +10,7 @@ export const createUser = async (username: string, password: string): Promise<{ 
       .from('users')
       .select('username')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (existingUser) {
       return { success: false, message: 'Username is already taken.' };
@@ -46,7 +46,7 @@ export const authenticateUser = async (username: string, password: string): Prom
       .from('users')
       .select('*')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (!user) return null;
 
@@ -70,7 +70,7 @@ export const getUserByUsername = async (username: string): Promise<User | null> 
       .from('users')
       .select('*')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (!user) return null;
 
@@ -95,7 +95,7 @@ export const updateUser = async (
       .from('users')
       .select('*')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (!user) {
       return { success: false, message: 'User not found.' };
@@ -129,7 +129,7 @@ export const updateUser = async (
       .update(updateData)
       .eq('username', username)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error updating user:', error);
@@ -221,7 +221,7 @@ export const fetchPostById = async (id: string): Promise<Post | null> => {
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !post) {
       console.error('Error fetching post:', error);
@@ -242,7 +242,7 @@ export const insertPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'upda
       .from('users')
       .select('id')
       .eq('username', postData.author)
-      .single();
+      .maybeSingle();
 
     if (!author) {
       throw new Error('Author not found');
@@ -259,7 +259,7 @@ export const insertPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'upda
         *,
         author:users!posts_author_id_fkey(username)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error creating post:', error);
@@ -302,7 +302,7 @@ export const modifyPost = async (id: string, postUpdate: Partial<Post>): Promise
         ),
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
-      .single();
+      .maybeSingle();
 
     if (error || !post) {
       console.error('Error updating post:', error);
@@ -344,7 +344,7 @@ export const insertComment = async (postId: string, commentData: Omit<Comment, '
       .from('users')
       .select('id')
       .eq('username', commentData.author)
-      .single();
+      .maybeSingle();
 
     if (!author) {
       throw new Error('Author not found');
@@ -361,7 +361,7 @@ export const insertComment = async (postId: string, commentData: Omit<Comment, '
         *,
         author:users!comments_author_id_fkey(username)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error creating comment:', error);
@@ -392,7 +392,7 @@ export const modifyComment = async (postId: string, commentId: string, content: 
         *,
         author:users!comments_author_id_fkey(username)
       `)
-      .single();
+      .maybeSingle();
 
     if (error || !comment) {
       console.error('Error updating comment:', error);
@@ -439,7 +439,7 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
       .from('users')
       .select('id')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (!user) {
       throw new Error('User not found');
@@ -451,7 +451,7 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
       .select('*')
       .eq('post_id', postId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existingVote) {
       if (existingVote.vote_type === voteType) {
