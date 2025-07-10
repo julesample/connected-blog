@@ -1,51 +1,494 @@
 import { User, Post, Comment } from '../types';
+import { supabase } from './supabase';
 
-// --- IMPORTANT ---
-// This is a MOCK API service that uses localStorage to simulate a real database.
-// To connect this application to a real backend (e.g., one using NeonDB),
-// you would replace the functions in this file with `fetch` calls to your API
-// endpoints. The rest of the application is built to be "backend-ready" and
-// would not need to change.
+// --- User API ---
 
-const USERS_STORAGE_KEY = 'connected-blog-users';
-const POSTS_STORAGE_KEY = 'connected-blog-posts';
-const MOCK_API_LATENCY = 300; // ms
+export const createUser = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Check if username already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', username)
+      .single();
+
+    if (existingUser) {
+      return { success: false, message: 'Username is already taken.' };
+    }
+
+    // Hash password (in production, use proper hashing like bcrypt)
+    const passwordHash = await _mockHash(password);
+
+    // Create user in database
+    const { error } = await supabase
+      .from('users')
+      .insert({
+        username,
+        password_hash: passwordHash,
+        bio: ''
+      });
+
+    if (error) {
+      console.error('Error creating user:', error);
+      return { success: false, message: 'Failed to create user.' };
+    }
+
+    return { success: true, message: 'User registered successfully.' };
+  } catch (error) {
+    console.error('Error in createUser:', error);
+    return { success: false, message: 'An error occurred during registration.' };
+  }
+};
+
+export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (!user) return null;
+
+    const inputPasswordHash = await _mockHash(password);
+    if (user.password_hash !== inputPasswordHash) return null;
+
+    return {
+      username: user.username,
+      passwordHash: user.password_hash,
+      bio: user.bio
+    };
+  } catch (error) {
+    console.error('Error in authenticateUser:', error);
+    return null;
+  }
+};
+
+export const getUserByUsername = async (username: string): Promise<User | null> => {
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (!user) return null;
+
+    return {
+      username: user.username,
+      passwordHash: user.password_hash,
+      bio: user.bio
+    };
+  } catch (error) {
+    console.error('Error in getUserByUsername:', error);
+    return null;
+  }
+};
+
+export const updateUser = async (
+  username: string,
+  data: Partial<User> & { currentPassword?: string, newPassword?: string }
+): Promise<{ success: boolean; message?: string; user?: User }> => {
+  try {
+    // Get current user
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (!user) {
+      return { success: false, message: 'User not found.' };
+    }
+
+    let updateData: any = {};
+
+    // Password change logic
+    if (data.newPassword) {
+      if (!data.currentPassword) {
+        return { success: false, message: 'Current password is required to set a new one.' };
+      }
+      if (data.newPassword.length < 6) {
+        return { success: false, message: 'New password must be at least 6 characters.' };
+      }
+      const currentPasswordHash = await _mockHash(data.currentPassword);
+      if (currentPasswordHash !== user.password_hash) {
+        return { success: false, message: 'Incorrect current password.' };
+      }
+      updateData.password_hash = await _mockHash(data.newPassword);
+    }
+
+    // Bio change logic
+    if (typeof data.bio !== 'undefined') {
+      updateData.bio = data.bio;
+    }
+
+    // Update user in database
+    const { data: updatedUser, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('username', username)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user:', error);
+      return { success: false, message: 'Failed to update user.' };
+    }
+
+    return {
+      success: true,
+      user: {
+        username: updatedUser.username,
+        passwordHash: updatedUser.password_hash,
+        bio: updatedUser.bio
+      }
+    };
+  } catch (error) {
+    console.error('Error in updateUser:', error);
+    return { success: false, message: 'An error occurred during update.' };
+  }
+};
+
+// --- Post API ---
+
+export const fetchAllPosts = async (): Promise<Post[]> => {
+  try {
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching posts:', error);
+      return [];
+    }
+
+    return posts.map(transformPostFromDB);
+  } catch (error) {
+    console.error('Error in fetchAllPosts:', error);
+    return [];
+  }
+};
+
+export const fetchUserPosts = async (username: string): Promise<Post[]> => {
+  try {
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .eq('author.username', username)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user posts:', error);
+      return [];
+    }
+
+    return posts.map(transformPostFromDB);
+  } catch (error) {
+    console.error('Error in fetchUserPosts:', error);
+    return [];
+  }
+};
+
+export const fetchPostById = async (id: string): Promise<Post | null> => {
+  try {
+    const { data: post, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error || !post) {
+      console.error('Error fetching post:', error);
+      return null;
+    }
+
+    return transformPostFromDB(post);
+  } catch (error) {
+    console.error('Error in fetchPostById:', error);
+    return null;
+  }
+};
+
+export const insertPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'upvotes' | 'downvotes'>) => {
+  try {
+    // Get author ID
+    const { data: author } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', postData.author)
+      .single();
+
+    if (!author) {
+      throw new Error('Author not found');
+    }
+
+    const { data: post, error } = await supabase
+      .from('posts')
+      .insert({
+        title: postData.title,
+        content: postData.content,
+        author_id: author.id
+      })
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error creating post:', error);
+      throw new Error('Failed to create post');
+    }
+
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author.username,
+      createdAt: post.created_at,
+      updatedAt: post.updated_at,
+      comments: [],
+      upvotes: [],
+      downvotes: []
+    };
+  } catch (error) {
+    console.error('Error in insertPost:', error);
+    throw error;
+  }
+};
+
+export const modifyPost = async (id: string, postUpdate: Partial<Post>): Promise<Post | null> => {
+  try {
+    const updateData: any = {};
+    if (postUpdate.title) updateData.title = postUpdate.title;
+    if (postUpdate.content) updateData.content = postUpdate.content;
+
+    const { data: post, error } = await supabase
+      .from('posts')
+      .update(updateData)
+      .eq('id', id)
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .single();
+
+    if (error || !post) {
+      console.error('Error updating post:', error);
+      return null;
+    }
+
+    return transformPostFromDB(post);
+  } catch (error) {
+    console.error('Error in modifyPost:', error);
+    return null;
+  }
+};
+
+export const removePost = async (id: string): Promise<{ success: boolean }> => {
+  try {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting post:', error);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in removePost:', error);
+    return { success: false };
+  }
+};
+
+// --- Interactions API ---
+
+export const insertComment = async (postId: string, commentData: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comment | null> => {
+  try {
+    // Get author ID
+    const { data: author } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', commentData.author)
+      .single();
+
+    if (!author) {
+      throw new Error('Author not found');
+    }
+
+    const { data: comment, error } = await supabase
+      .from('comments')
+      .insert({
+        post_id: postId,
+        author_id: author.id,
+        content: commentData.content
+      })
+      .select(`
+        *,
+        author:users!comments_author_id_fkey(username)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error creating comment:', error);
+      return null;
+    }
+
+    return {
+      id: comment.id,
+      author: comment.author.username,
+      content: comment.content,
+      createdAt: comment.created_at,
+      updatedAt: comment.updated_at
+    };
+  } catch (error) {
+    console.error('Error in insertComment:', error);
+    return null;
+  }
+};
+
+export const modifyComment = async (postId: string, commentId: string, content: string): Promise<Comment | null> => {
+  try {
+    const { data: comment, error } = await supabase
+      .from('comments')
+      .update({ content })
+      .eq('id', commentId)
+      .eq('post_id', postId)
+      .select(`
+        *,
+        author:users!comments_author_id_fkey(username)
+      `)
+      .single();
+
+    if (error || !comment) {
+      console.error('Error updating comment:', error);
+      return null;
+    }
+
+    return {
+      id: comment.id,
+      author: comment.author.username,
+      content: comment.content,
+      createdAt: comment.created_at,
+      updatedAt: comment.updated_at
+    };
+  } catch (error) {
+    console.error('Error in modifyComment:', error);
+    return null;
+  }
+};
+
+export const removeComment = async (postId: string, commentId: string): Promise<{ success: boolean }> => {
+  try {
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('post_id', postId);
+
+    if (error) {
+      console.error('Error deleting comment:', error);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in removeComment:', error);
+    return { success: false };
+  }
+};
+
+export const manageVote = async (postId: string, username: string, voteType: 'upvote' | 'downvote'): Promise<Post | null> => {
+  try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if user already voted
+    const { data: existingVote } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingVote) {
+      if (existingVote.vote_type === voteType) {
+        // Remove vote if same type
+        await supabase
+          .from('votes')
+          .delete()
+          .eq('id', existingVote.id);
+      } else {
+        // Update vote type
+        await supabase
+          .from('votes')
+          .update({ vote_type: voteType })
+          .eq('id', existingVote.id);
+      }
+    } else {
+      // Create new vote
+      await supabase
+        .from('votes')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          vote_type: voteType
+        });
+    }
+
+    // Return updated post
+    return await fetchPostById(postId);
+  } catch (error) {
+    console.error('Error in manageVote:', error);
+    return null;
+  }
+};
 
 // --- Utility Functions ---
 
-const simulateApiCall = <T>(data: T): Promise<T> => {
-    return new Promise(resolve => {
-        setTimeout(() => resolve(data), MOCK_API_LATENCY);
-    });
-};
-
-const _getUsers = (): User[] => {
-    try {
-        const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-        return usersJson ? JSON.parse(usersJson) : [];
-    } catch {
-        return [];
-    }
-};
-
-const _saveUsers = (users: User[]) => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-const _getPosts = (): Post[] => {
-    try {
-        const postsJson = localStorage.getItem(POSTS_STORAGE_KEY);
-        return postsJson ? JSON.parse(postsJson) : [];
-    } catch {
-        return [];
-    }
-};
-
-const _savePosts = (posts: Post[]) => {
-    localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
-};
-
-/** Insecure hash simulation */
+/** Insecure hash simulation - replace with proper hashing in production */
 const _mockHash = async (password: string): Promise<string> => {
   try {
     const encoder = new TextEncoder();
@@ -58,205 +501,28 @@ const _mockHash = async (password: string): Promise<string> => {
   }
 };
 
+// Transform database post to application format
+const transformPostFromDB = (dbPost: any): Post => {
+  const upvotes = dbPost.votes?.filter((v: any) => v.vote_type === 'upvote').map((v: any) => v.user.username) || [];
+  const downvotes = dbPost.votes?.filter((v: any) => v.vote_type === 'downvote').map((v: any) => v.user.username) || [];
+  
+  const comments = dbPost.comments?.map((c: any) => ({
+    id: c.id,
+    author: c.author.username,
+    content: c.content,
+    createdAt: c.created_at,
+    updatedAt: c.updated_at
+  })) || [];
 
-// --- User API ---
-
-export const createUser = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
-    let users = _getUsers();
-    if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-        return simulateApiCall({ success: false, message: 'Username is already taken.' });
-    }
-    const passwordHash = await _mockHash(password);
-    const newUser: User = { username, passwordHash, bio: '' };
-    _saveUsers([...users, newUser]);
-    return simulateApiCall({ success: true, message: 'User registered successfully.' });
-};
-
-export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
-    const users = _getUsers();
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (!user) return simulateApiCall(null);
-
-    const inputPasswordHash = await _mockHash(password);
-    return simulateApiCall(user.passwordHash === inputPasswordHash ? user : null);
-};
-
-export const getUserByUsername = async(username: string): Promise<User | null> => {
-    const users = _getUsers();
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
-    return simulateApiCall(user);
-}
-
-export const updateUser = async (
-    username: string,
-    data: Partial<User> & { currentPassword?: string, newPassword?: string }
-): Promise<{ success: boolean; message?: string; user?: User }> => {
-    let users = _getUsers();
-    const userIndex = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
-    if (userIndex === -1) {
-        return simulateApiCall({ success: false, message: 'User not found.' });
-    }
-
-    let user = users[userIndex];
-
-    // Password change logic
-    if (data.newPassword) {
-        if (!data.currentPassword) {
-            return simulateApiCall({ success: false, message: 'Current password is required to set a new one.' });
-        }
-        if (data.newPassword.length < 6) {
-            return simulateApiCall({ success: false, message: 'New password must be at least 6 characters.' });
-        }
-        const currentPasswordHash = await _mockHash(data.currentPassword);
-        if (currentPasswordHash !== user.passwordHash) {
-            return simulateApiCall({ success: false, message: 'Incorrect current password.' });
-        }
-        user.passwordHash = await _mockHash(data.newPassword);
-    }
-
-    // Bio change logic
-    if (typeof data.bio !== 'undefined') {
-        user.bio = data.bio;
-    }
-    
-    users[userIndex] = user;
-    _saveUsers(users);
-
-    return simulateApiCall({ success: true, user });
-};
-
-
-// --- Post API ---
-
-export const fetchAllPosts = async (): Promise<Post[]> => {
-    const posts = _getPosts().sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    return simulateApiCall(posts);
-};
-
-export const fetchUserPosts = async (username: string): Promise<Post[]> => {
-    const posts = _getPosts()
-        .filter(p => p.author.toLowerCase() === username.toLowerCase())
-        .sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    return simulateApiCall(posts);
-};
-
-export const fetchPostById = async (id: string): Promise<Post | null> => {
-    const post = _getPosts().find(p => p.id === id) || null;
-    return simulateApiCall(post);
-}
-
-export const insertPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'upvotes' | 'downvotes'>) => {
-    const now = new Date().toISOString();
-    const newPost: Post = {
-        ...postData,
-        id: crypto.randomUUID(),
-        createdAt: now,
-        updatedAt: now,
-        comments: [],
-        upvotes: [],
-        downvotes: []
-    };
-    const posts = _getPosts();
-    _savePosts([newPost, ...posts]);
-    return simulateApiCall(newPost);
-};
-
-export const modifyPost = async (id: string, postUpdate: Partial<Post>): Promise<Post | null> => {
-    let posts = _getPosts();
-    const postIndex = posts.findIndex(p => p.id === id);
-    if (postIndex === -1) return simulateApiCall(null);
-
-    posts[postIndex] = { ...posts[postIndex], ...postUpdate, updatedAt: new Date().toISOString() };
-    _savePosts(posts);
-    return simulateApiCall(posts[postIndex]);
-};
-
-export const removePost = async (id: string): Promise<{ success: boolean }> => {
-    let posts = _getPosts();
-    const newPosts = posts.filter(p => p.id !== id);
-    _savePosts(newPosts);
-    return simulateApiCall({ success: posts.length !== newPosts.length });
-};
-
-// --- Interactions API ---
-
-export const insertComment = async (postId: string, commentData: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comment | null> => {
-    let posts = _getPosts();
-    const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return simulateApiCall(null);
-    
-    const now = new Date().toISOString();
-    const newComment: Comment = {
-        ...commentData,
-        id: crypto.randomUUID(),
-        createdAt: now,
-        updatedAt: now,
-    };
-    
-    posts[postIndex].comments.push(newComment);
-    _savePosts(posts);
-    return simulateApiCall(newComment);
-};
-
-export const modifyComment = async (postId: string, commentId: string, content: string): Promise<Comment | null> => {
-    let posts = _getPosts();
-    const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return simulateApiCall(null);
-
-    const commentIndex = posts[postIndex].comments.findIndex(c => c.id === commentId);
-    if (commentIndex === -1) return simulateApiCall(null);
-
-    posts[postIndex].comments[commentIndex].content = content;
-    posts[postIndex].comments[commentIndex].updatedAt = new Date().toISOString();
-    _savePosts(posts);
-    return simulateApiCall(posts[postIndex].comments[commentIndex]);
-};
-
-export const removeComment = async (postId: string, commentId: string): Promise<{success: boolean}> => {
-    let posts = _getPosts();
-    const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return simulateApiCall({success: false});
-
-    const originalCommentCount = posts[postIndex].comments.length;
-    posts[postIndex].comments = posts[postIndex].comments.filter(c => c.id !== commentId);
-    const newCommentCount = posts[postIndex].comments.length;
-
-    _savePosts(posts);
-    return simulateApiCall({success: originalCommentCount > newCommentCount});
-};
-
-export const manageVote = async (postId: string, username: string, voteType: 'upvote' | 'downvote'): Promise<Post | null> => {
-    let posts = _getPosts();
-    const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return simulateApiCall(null);
-    
-    const post = posts[postIndex];
-    if (post.author === username) return simulateApiCall(post); // Cannot vote on own post
-
-    const upvoteIndex = post.upvotes.indexOf(username);
-    const downvoteIndex = post.downvotes.indexOf(username);
-    
-    if (voteType === 'upvote') {
-        if (upvoteIndex > -1) { // User is retracting upvote
-            post.upvotes.splice(upvoteIndex, 1);
-        } else {
-            post.upvotes.push(username);
-            if (downvoteIndex > -1) { // Remove downvote if it exists
-                post.downvotes.splice(downvoteIndex, 1);
-            }
-        }
-    } else { // downvote
-        if (downvoteIndex > -1) { // User is retracting downvote
-            post.downvotes.splice(downvoteIndex, 1);
-        } else {
-            post.downvotes.push(username);
-            if (upvoteIndex > -1) { // Remove upvote if it exists
-                post.upvotes.splice(upvoteIndex, 1);
-            }
-        }
-    }
-    
-    posts[postIndex] = post;
-    _savePosts(posts);
-    return simulateApiCall(post);
+  return {
+    id: dbPost.id,
+    title: dbPost.title,
+    content: dbPost.content,
+    author: dbPost.author.username,
+    createdAt: dbPost.created_at,
+    updatedAt: dbPost.updated_at,
+    upvotes,
+    downvotes,
+    comments
+  };
 };
