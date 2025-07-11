@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
 
-export const Auth: React.FC = () => {
+const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,4 +92,5 @@ export const Auth: React.FC = () => {
       </div>
     </div>
   );
-};
+
+export default Auth;
