@@ -25,6 +25,7 @@ const About: React.FC = () => {
         <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">
           Your AI-powered space for creating, sharing, and discovering content.
         </p>
+        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.github.io/jules-profile" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
       </div>
 
       <div className="p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
@@ -35,9 +36,7 @@ const About: React.FC = () => {
                 of integrating large language models into web applications. It provides a seamless experience for multiple users
                 to register, create rich blog posts, and interact with content from the entire community.
             </p>
-             <p>
-                This application is architected to be <strong>backend-ready</strong>. While it currently runs entirely in your browser, it communicates with a <strong>simulated backend API</strong> (`services/api.ts`) that uses `localStorage` to mimic a persistent database. To connect this app to a real backend powered by a service like <strong>NeonDB</strong>, you would only need to replace the functions in `api.ts` with real network `fetch` calls to your server endpoints. No UI code would need to change.
-            </p>
+            
         </div>
       </div>
       
