@@ -56,9 +56,7 @@ const Header: React.FC = () => {
             <NavLink to="/" end className={({isActive}) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : inactiveNavLinkClasses}`}>
                 Dashboard
             </NavLink>
-             <NavLink to="/explore" className={({isActive}) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : inactiveNavLinkClasses}`}>
-                Explore
-            </NavLink>
+          
              <NavLink to="/about" className={({isActive}) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : inactiveNavLinkClasses}`}>
                 About
             </NavLink>
