@@ -43,7 +43,7 @@ const MainApp: React.FC = () => {
       <Header />
       <main className="container mx-auto max-w-5xl px-4 py-8">
         <Routes>
-          <Route path="/" element={<PostList />} />
+          <Route path="/" element={<Explore />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/about" element={<About />} />
           <Route path="/settings" element={<Settings />} />
