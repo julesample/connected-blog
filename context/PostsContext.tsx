@@ -30,7 +30,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const fetchPosts = useCallback(async () => {
     setIsLoading(true);
-    if (currentUser) {
+    if (currentUser && currentUser.username) {
       const [userPosts, allPostsData] = await Promise.all([
         postsService.getUserPosts(currentUser.username),
         postsService.getAllPosts()
