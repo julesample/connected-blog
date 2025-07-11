@@ -7,7 +7,7 @@ interface PostListProps {
   onSelectPost?: (post: Post) => void;
 }
 
-export const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
+const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
   const { posts, loading, error, voteOnPost } = usePosts();
   const { currentUser } = useUser();
 
@@ -94,3 +94,5 @@ export const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
     </div>
   );
 };
+
+export default PostList;
