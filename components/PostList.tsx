@@ -9,10 +9,10 @@ interface PostListProps {
 
 export const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
   const { posts, loading, error, voteOnPost } = usePosts();
-  const { user } = useUser();
+  const { currentUser } = useUser();
 
   const handleVote = async (postId: string, voteType: 'upvote' | 'downvote') => {
-    if (!user) return;
+    if (!currentUser) return;
     await voteOnPost(postId, voteType);
   };
 
@@ -57,13 +57,13 @@ export const PostList: React.FC<PostListProps> = ({ onSelectPost }) => {
                 {post.content}
               </p>
               <div className="flex items-center text-sm text-gray-500">
-                <span>By {post.username}</span>
+                <span>By {post.author}</span>
                 <span className="mx-2">•</span>
-                <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
             
-            {user && (
+            {currentUser && (
               <div className="flex flex-col items-center ml-4">
                 <button
                   onClick={(e) => {
