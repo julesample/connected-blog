@@ -17,8 +17,7 @@ function App() {
   return (
     <ToastProvider>
       <UserProvider>
-        <PostsProvider
-           apiKey='bbf7tkn7ioraaze412j5m51on50pdoqnzrknvu5x4j0xf2kt'
+        <PostsProvider apiKey='bbf7tkn7ioraaze412j5m51on50pdoqnzrknvu5x4j0xf2kt'
       init={{
         plugins: [
           // Core editing features
