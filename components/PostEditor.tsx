@@ -5,6 +5,7 @@ import { usePostsContext } from '../context/PostsContext';
 import { useToast } from '../context/ToastContext';
 import { generateContent } from '../services/geminiService';
 import Icon from './Icon';
+import RichTextEditor from './RichTextEditor';
 
 const PostEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -99,20 +100,15 @@ const PostEditor: React.FC = () => {
         </div>
 
         <div>
-          <label htmlFor="content" className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100">
+          <label className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100 mb-2">
             Content
           </label>
-          <div className="mt-2">
-            <textarea
-              id="content"
-              name="content"
-              rows={12}
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              className="block w-full rounded-md border-0 bg-white/5 dark:bg-white/5 py-2 px-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
-              placeholder="Write your content here..."
-            />
-          </div>
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Write your blog content here... Use the toolbar above to format your text."
+            className="w-full"
+          />
         </div>
 
         <div className="space-y-4 rounded-lg border border-primary-300/50 dark:border-primary-500/30 p-4 bg-primary-50/50 dark:bg-primary-900/10">

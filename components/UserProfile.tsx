@@ -198,9 +198,12 @@ const UserProfile: React.FC = () => {
                                                 >
                                                     {post.title}
                                                 </Link>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                                                    {post.content.substring(0, 100)}...
-                                                </p>
+                                                <div 
+                                                    className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{ 
+                                                        __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...' 
+                                                    }}
+                                                />
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
