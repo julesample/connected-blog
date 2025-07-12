@@ -132,6 +132,10 @@ const UserProfile: React.FC = () => {
                                 <Icon name="edit" className="h-4 w-4" />
                                 {posts.length} {posts.length === 1 ? 'post' : 'posts'}
                             </span>
+                            <span className="flex items-center gap-1">
+                                <Icon name="arrow-up" className="h-4 w-4" />
+                                {posts.reduce((acc, post) => acc + post.upvotes.length, 0)} upvotes
+                            </span>
                         </div>
                     </div>
                     {isOwnProfile && (

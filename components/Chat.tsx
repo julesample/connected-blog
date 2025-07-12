@@ -18,6 +18,7 @@ const Chat: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [receiverId, setReceiverId] = useState('');
   const [users, setUsers] = useState<{ id: string; username: string }[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ const Chat: React.FC = () => {
         const { data, error } = await supabase
           .from('messages')
           .select('*')
-          .or(`(sender_id.eq.${currentUser.id},and(receiver_id.eq.${receiverId})), (sender_id.eq.${receiverId},and(receiver_id.eq.${currentUser.id}))`)
+          .or(`(sender_id.eq.${currentUser.id},receiver_id.eq.${receiverId}),(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.id})`)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -89,12 +90,23 @@ const Chat: React.FC = () => {
     }
   };
 
+  const filteredUsers = users.filter((user) =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="flex h-screen">
       <div className="w-1/4 bg-slate-100 dark:bg-slate-800 p-4">
         <h2 className="text-xl font-bold mb-4">Users</h2>
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-2 rounded-lg bg-white/5 dark:bg-white/5 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-600 focus:ring-2 focus:ring-inset focus:ring-primary-500 mb-4"
+        />
         <ul>
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <li
               key={u.id}
               className={`p-2 cursor-pointer ${receiverId === u.id ? 'bg-primary-500 text-white' : ''}`}
@@ -125,7 +137,7 @@ const Chat: React.FC = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="w-full p-2 rounded-lg"
+            className="w-full p-2 rounded-lg bg-white/5 dark:bg-white/5 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-600 focus:ring-2 focus:ring-inset focus:ring-primary-500"
           />
         </form>
       </div>
