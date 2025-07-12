@@ -208,11 +208,9 @@ const PostPreview: React.FC = () => {
             </header>
             
             <div 
-            className="prose prose-lg dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-headings:text-slate-800 dark:prose-headings:text-slate-100"
-            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-            >
-            {post.content}
-            </div>
+            className="prose prose-lg dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-headings:text-slate-800 dark:prose-headings:text-slate-100 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-strong:text-slate-800 dark:prose-strong:text-slate-100 prose-em:text-slate-700 dark:prose-em:text-slate-200"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+            />
 
             <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <VoteControl post={post} />
