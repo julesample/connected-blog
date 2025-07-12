@@ -10,7 +10,7 @@ import Icon from './Icon';
 
 const UserProfile: React.FC = () => {
     const { username } = useParams<{ username: string }>();
-    const { currentUser, logout } = useUser();
+    const { currentUser, deleteUserAccount } = useUser();
     const { showToast } = useToast();
     const { deletePost } = usePostsContext();
     const navigate = useNavigate();
@@ -20,6 +20,8 @@ const UserProfile: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [postToDelete, setPostToDelete] = useState<string | null>(null);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -57,10 +59,24 @@ const UserProfile: React.FC = () => {
     };
 
     const handleDeleteAccount = async () => {
-        // Note: This would need to be implemented in the backend
-        // For now, we'll just show a message
-        showToast('Account deletion feature coming soon', 'info');
-        setShowDeleteAccountModal(false);
+        if (!deletePassword.trim()) {
+            showToast('Please enter your password to confirm account deletion.', 'error');
+            return;
+        }
+        
+        setIsDeletingAccount(true);
+        try {
+            const success = await deleteUserAccount(deletePassword);
+            if (success) {
+                navigate('/');
+            }
+        } catch (error) {
+            showToast('Failed to delete account', 'error');
+        } finally {
+            setIsDeletingAccount(false);
+            setShowDeleteAccountModal(false);
+            setDeletePassword('');
+        }
     };
 
     if (isLoading) {
@@ -317,18 +333,37 @@ const UserProfile: React.FC = () => {
                         <p className="text-slate-600 dark:text-slate-400 mb-6">
                             Are you sure you want to delete your account? This will permanently remove all your posts, comments, and profile data. This action cannot be undone.
                         </p>
+                        <div className="mb-6">
+                            <label htmlFor="deletePassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Enter your password to confirm:
+                            </label>
+                            <input
+                                id="deletePassword"
+                                type="password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                className="block w-full rounded-md border-0 bg-white dark:bg-slate-700 py-2 px-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6"
+                                placeholder="Your password"
+                                required
+                            />
+                        </div>
                         <div className="flex gap-3 justify-end">
                             <button
-                                onClick={() => setShowDeleteAccountModal(false)}
+                                onClick={() => {
+                                    setShowDeleteAccountModal(false);
+                                    setDeletePassword('');
+                                }}
+                                disabled={isDeletingAccount}
                                 className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleDeleteAccount}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors"
+                                disabled={isDeletingAccount || !deletePassword.trim()}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Delete Account
+                                {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
                             </button>
                         </div>
                     </div>

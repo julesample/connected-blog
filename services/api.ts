@@ -130,6 +130,55 @@ export const updateUser = async (
   }
 };
 
+export const deleteUserAccount = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Get current user
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return { success: false, message: 'User not found.' };
+    }
+
+    // Verify password by attempting to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: password,
+    });
+
+    if (signInError) {
+      return { success: false, message: 'Invalid password.' };
+    }
+
+    // Delete user data (posts, comments, votes will be cascade deleted)
+    const { error: deleteError } = await supabase
+      .from('users')
+      .delete()
+      .eq('username', username);
+
+    if (deleteError) {
+      console.error('Error deleting user:', deleteError);
+      return { success: false, message: 'Failed to delete account.' };
+    }
+
+    // Delete from Supabase Auth
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
+    
+    if (authDeleteError) {
+      console.error('Error deleting auth user:', authDeleteError);
+      // Continue anyway as the main user data is deleted
+    }
+
+    return { success: true, message: 'Account deleted successfully.' };
+  } catch (error) {
+    console.error('Error in deleteUserAccount:', error);
+    return { success: false, message: 'An error occurred during account deletion.' };
+  }
+};
+
 // --- Post API ---
 
 export const fetchAllPosts = async (): Promise<Post[]> => {
@@ -161,6 +210,17 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
 
 export const fetchUserPosts = async (username: string): Promise<Post[]> => {
   try {
+    // First get the user ID from username
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return [];
+    }
+
     const { data: posts, error } = await supabase
       .from('posts')
       .select(`
@@ -172,7 +232,7 @@ export const fetchUserPosts = async (username: string): Promise<Post[]> => {
         ),
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
-      .eq('author.username', username)
+      .eq('author_id', user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {

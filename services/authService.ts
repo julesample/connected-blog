@@ -75,3 +75,7 @@ export const updateProfile = async (
 ): Promise<{ success: boolean; message?: string; user?: User }> => {
     return api.updateUser(username, data);
 }
+
+export const deleteAccount = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
+    return api.deleteUserAccount(username, password);
+}
