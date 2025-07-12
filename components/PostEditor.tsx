@@ -104,6 +104,7 @@ const PostEditor: React.FC = () => {
             Content
           </label>
           <TinyMCEEditor
+            api-key="bbf7tkn7ioraaze412j5m51on50pdoqnzrknvu5x4j0xf2kt"
             value={content}
             onChange={setContent}
             placeholder="Write your blog content here... Use the toolbar above to format your text."
