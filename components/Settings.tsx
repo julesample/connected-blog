@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import Icon from './Icon';
+import TinyMCEEditor from './TinyMCEEditor';
 
 const Settings: React.FC = () => {
     const { currentUser, updateUserProfile } = useUser();
@@ -76,13 +77,12 @@ const Settings: React.FC = () => {
                             Bio
                         </label>
                          <div className="mt-2">
-                            <textarea
-                                id="bio"
+                            <TinyMCEEditor
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
-                                rows={3}
-                                className="block w-full rounded-md border-0 bg-white/5 dark:bg-white/5 py-2 px-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
                                 placeholder="Tell us a little about yourself..."
+                                height={200}
+                                className="w-full border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden"
                             />
                         </div>
                     </div>

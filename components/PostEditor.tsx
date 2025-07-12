@@ -5,7 +5,7 @@ import { usePostsContext } from '../context/PostsContext';
 import { useToast } from '../context/ToastContext';
 import { generateContent } from '../services/geminiService';
 import Icon from './Icon';
-import RichTextEditor from './RichTextEditor';
+import TinyMCEEditor from './TinyMCEEditor';
 
 const PostEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,11 +103,12 @@ const PostEditor: React.FC = () => {
           <label className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100 mb-2">
             Content
           </label>
-          <RichTextEditor
+          <TinyMCEEditor
             value={content}
             onChange={setContent}
             placeholder="Write your blog content here... Use the toolbar above to format your text."
-            className="w-full"
+            height={500}
+            className="w-full border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden"
           />
         </div>
 
