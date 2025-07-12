@@ -77,13 +77,17 @@ const Settings: React.FC = () => {
                             Bio
                         </label>
                          <div className="mt-2">
-                            <TinyMCEEditor
-                                value={bio}
-                                onChange={(e) => setBio(e.target.value)}
-                                placeholder="Tell us a little about yourself..."
-                                height={200}
+                              <input
+            
+              type="text"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+           
+           height={200}
                                 className="w-full border border-slate-300 dark:border-slate-600 rounded-md overflow-hidden"
-                            />
+              placeholder="Who are you?"
+            />
+                           
                         </div>
                     </div>
                      <div className="flex justify-end">
