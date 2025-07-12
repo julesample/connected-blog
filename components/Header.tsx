@@ -92,6 +92,14 @@ const Header: React.FC = () => {
             >
               About
             </NavLink>
+            <NavLink
+              to="/chat"
+              className={({ isActive }) =>
+                `${base} ${isActive ? active : inactive}`
+              }
+            >
+              Chat
+            </NavLink>
           </nav>
 
           {/* Right‑hand items */}
@@ -175,6 +183,16 @@ const Header: React.FC = () => {
             }
           >
             About
+          </NavLink>
+
+          <NavLink
+            to="/chat"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              `${base} w-full text-left ${isActive ? active : inactive}`
+            }
+          >
+            Chat
           </NavLink>
 
           {currentUser && (

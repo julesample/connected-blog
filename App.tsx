@@ -12,6 +12,7 @@ import Explore from './components/Explore';
 import About from './components/About';
 import Settings from './components/Settings';
 import UserProfile from './components/UserProfile';
+import Chat from './components/Chat';
 
 function App() {
   return (
@@ -68,6 +69,7 @@ const MainApp: React.FC = () => {
           <Route path="/new" element={<PostEditor />} />
           <Route path="/edit/:id" element={<PostEditor />} />
           <Route path="/post/:id" element={<PostPreview />} />
+          <Route path="/chat" element={<Chat />} />
         </Routes>
       </main>
     </div>

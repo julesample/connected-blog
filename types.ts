@@ -12,6 +12,7 @@ export interface Post {
   title: string;
   content: string;
   author: string;
+  privacy: 'public' | 'friends' | 'private';
   createdAt: string;
   updatedAt: string;
   upvotes: string[]; // Array of usernames who upvoted
