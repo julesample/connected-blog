@@ -120,7 +120,12 @@ const UserProfile: React.FC = () => {
                     <div className="flex-1 text-center sm:text-left">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.username}</h1>
                         <p className="mt-2 text-slate-600 dark:text-slate-400">
-                            {user.bio || 'This user has not set a bio yet.'}
+                            <div 
+                                className="prose prose-sm dark:prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ 
+                                    __html: user.bio || 'This user has not set a bio yet.' 
+                                }}
+                            />
                         </p>
                         <div className="mt-3 flex items-center justify-center sm:justify-start gap-4 text-sm text-slate-500 dark:text-slate-400">
                             <span className="flex items-center gap-1">
