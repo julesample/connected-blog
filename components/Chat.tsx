@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/UserContext';
+import { useUser } from '../context/UserContext';
 import { supabase } from '../services/supabase';
 import { useToast } from '../context/ToastContext';
 
@@ -12,7 +12,7 @@ interface Message {
 }
 
 const Chat: React.FC = () => {
-  const { user } = useAuth();
+  const { currentUser } = useUser();
   const { showToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -33,12 +33,12 @@ const Chat: React.FC = () => {
   }, [showToast]);
 
   useEffect(() => {
-    if (user && receiverId) {
+    if (currentUser && receiverId) {
       const fetchMessages = async () => {
         const { data, error } = await supabase
           .from('messages')
           .select('*')
-          .or(`(sender_id.eq.${user.id},and(receiver_id.eq.${receiverId})), (sender_id.eq.${receiverId},and(receiver_id.eq.${user.id}))`)
+          .or(`(sender_id.eq.${currentUser.id},and(receiver_id.eq.${receiverId})), (sender_id.eq.${receiverId},and(receiver_id.eq.${currentUser.id}))`)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -54,8 +54,8 @@ const Chat: React.FC = () => {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const newMessage = payload.new as Message;
           if (
-            (newMessage.sender_id === user.id && newMessage.receiver_id === receiverId) ||
-            (newMessage.sender_id === receiverId && newMessage.receiver_id === user.id)
+            (newMessage.sender_id === currentUser.id && newMessage.receiver_id === receiverId) ||
+            (newMessage.sender_id === receiverId && newMessage.receiver_id === currentUser.id)
           ) {
             setMessages((prevMessages) => [...prevMessages, newMessage]);
           }
@@ -66,7 +66,7 @@ const Chat: React.FC = () => {
         supabase.removeChannel(subscription);
       };
     }
-  }, [user, receiverId, showToast]);
+  }, [currentUser, receiverId, showToast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,7 +77,7 @@ const Chat: React.FC = () => {
     if (!newMessage.trim() || !receiverId) return;
 
     const { error } = await supabase.from('messages').insert({
-      sender_id: user!.id,
+      sender_id: currentUser!.id,
       receiver_id: receiverId,
       content: newMessage,
     });
@@ -111,7 +111,7 @@ const Chat: React.FC = () => {
             <div
               key={msg.id}
               className={`p-2 my-2 rounded-lg ${
-                msg.sender_id === user?.id ? 'bg-primary-500 text-white self-end' : 'bg-slate-200 dark:bg-slate-700'
+                msg.sender_id === currentUser?.id ? 'bg-primary-500 text-white self-end' : 'bg-slate-200 dark:bg-slate-700'
               }`}
             >
               {msg.content}
