@@ -14,6 +14,7 @@ interface UserContextType {
   register: (email: string, username: string, password: string) => Promise<boolean>;
   checkUserSession: () => void;
   updateUserProfile: (data: Partial<User> & { currentPassword?: string, newPassword?: string }) => Promise<boolean>;
+  deleteUserAccount: (password: string) => Promise<boolean>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -105,8 +106,26 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const deleteUserAccount = async (password: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    
+    const result = await authService.deleteAccount(currentUser.username, password);
+    
+    if (result.success) {
+      // Clear session and redirect
+      sessionStorage.removeItem(USER_SESSION_KEY);
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      showToast('Account deleted successfully.', 'success');
+      return true;
+    } else {
+      showToast(result.message, 'error');
+      return false;
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ currentUser, login, logout, register, checkUserSession, updateUserProfile }}>
+    <UserContext.Provider value={{ currentUser, login, logout, register, checkUserSession, updateUserProfile, deleteUserAccount }}>
       {children}
     </UserContext.Provider>
   );

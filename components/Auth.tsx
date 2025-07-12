@@ -7,10 +7,63 @@ const Auth: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mathQuestion, setMathQuestion] = useState({ question: '', answer: 0 });
+  const [userAnswer, setUserAnswer] = useState('');
   const { login, register } = useUser();
 
+  // Generate math question for registration
+  const generateMathQuestion = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const operations = ['+', '-', '*'];
+    const operation = operations[Math.floor(Math.random() * operations.length)];
+    
+    let answer;
+    let question;
+    
+    switch (operation) {
+      case '+':
+        answer = num1 + num2;
+        question = `${num1} + ${num2}`;
+        break;
+      case '-':
+        // Ensure positive result
+        const larger = Math.max(num1, num2);
+        const smaller = Math.min(num1, num2);
+        answer = larger - smaller;
+        question = `${larger} - ${smaller}`;
+        break;
+      case '*':
+        answer = num1 * num2;
+        question = `${num1} × ${num2}`;
+        break;
+      default:
+        answer = num1 + num2;
+        question = `${num1} + ${num2}`;
+    }
+    
+    setMathQuestion({ question, answer });
+  };
+
+  // Generate math question when switching to register mode
+  React.useEffect(() => {
+    if (!isLogin) {
+      generateMathQuestion();
+    }
+  }, [isLogin]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verify math answer for registration
+    if (!isLogin) {
+      if (parseInt(userAnswer) !== mathQuestion.answer) {
+        alert('Please solve the math problem correctly to verify you are human.');
+        generateMathQuestion(); // Generate new question
+        setUserAnswer('');
+        return;
+      }
+    }
+    
     setLoading(true);
     
     try {
@@ -18,6 +71,12 @@ const Auth: React.FC = () => {
         await login(email, password);
       } else {
         await register(email, username, password);
+        // Reset form and generate new math question
+        setEmail('');
+        setUsername('');
+        setPassword('');
+        setUserAnswer('');
+        generateMathQuestion();
       }
     } catch (error) {
       console.error('Authentication error:', error);
@@ -103,6 +162,31 @@ const Auth: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {!isLogin && (
+              <div>
+                <label htmlFor="mathVerification" className="sr-only">
+                  Math Verification
+                </label>
+                <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-md mb-2">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                    Please solve this math problem to verify you're human:
+                  </p>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-200 text-center">
+                    {mathQuestion.question} = ?
+                  </p>
+                </div>
+                <input
+                  id="mathVerification"
+                  name="mathVerification"
+                  type="number"
+                  required={!isLogin}
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 placeholder-slate-500 dark:placeholder-slate-400 text-slate-900 dark:text-white bg-white dark:bg-slate-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+                  placeholder="Your answer"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -119,7 +203,13 @@ const Auth: React.FC = () => {
             <button
               type="button"
               className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setEmail('');
+                setUsername('');
+                setPassword('');
+                setUserAnswer('');
+              }}
             >
               {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </button>
