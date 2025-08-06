@@ -25,7 +25,7 @@ const About: React.FC = () => {
         <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">
           Your AI-powered space for creating, sharing, and discovering content.
         </p>
-        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.github.io/jules-profile" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
+        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.vercel.app" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
       </div>
 
       <div className="p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
