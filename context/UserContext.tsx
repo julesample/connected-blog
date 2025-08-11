@@ -50,20 +50,46 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const user = await authService.loginUser(email, password);
-    if (user) {
-      try {
-        sessionStorage.setItem(USER_SESSION_KEY, user.username);
-        setCurrentUser(user);
-        showToast(`Welcome back, ${user.username}!`, 'success');
-        return true;
-      } catch (error) {
-        console.error("Failed to save user session", error);
-        showToast('Login failed due to a storage error.', 'error');
+    try {
+      // First, attempt to sign in with Supabase to check email verification
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        showToast(error.message, 'error');
         return false;
       }
-    } else {
-      showToast('Invalid username or password.', 'error');
+
+      // Check if email is verified
+      if (data.user && !data.user.email_confirmed_at) {
+        showToast('Please verify your email before logging in. Check your inbox for the verification email.', 'warning');
+        // Sign out the user since email is not verified
+        await supabase.auth.signOut();
+        return false;
+      }
+
+      // If email is verified, proceed with getting user profile
+      const user = await authService.loginUser(email, password);
+      if (user) {
+        try {
+          sessionStorage.setItem(USER_SESSION_KEY, user.username);
+          setCurrentUser(user);
+          showToast(`Welcome back, ${user.username}!`, 'success');
+          return true;
+        } catch (error) {
+          console.error("Failed to save user session", error);
+          showToast('Login failed due to a storage error.', 'error');
+          return false;
+        }
+      } else {
+        showToast('Invalid username or password.', 'error');
+        return false;
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      showToast('An error occurred during login. Please try again.', 'error');
       return false;
     }
   }, [showToast]);
@@ -71,7 +97,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = useCallback(async (email: string, username: string, password: string): Promise<boolean> => {
     const result = await authService.registerUser(email, username, password);
     if (result.success) {
-      showToast('Registration successful! Please log in.', 'success');
+      showToast('Please check your email to verify your account. You must authenticate your email before logging in.', 'success');
       return true;
     } else {
       showToast(result.message, 'error');
