@@ -130,27 +130,33 @@ const Comment: React.FC<{ comment: CommentType; postId: string; onAction: () => 
 const PostPreview: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPost, addComment } = usePostsContext();
+  const { getPost, addComment, deletePost } = usePostsContext();
   const { currentUser } = useUser();
   const { showToast } = useToast();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+
 
   const fetchPost = useCallback(async () => {
-    if (id) {
+    if (id && !isDeleting) {
       // Don't set loading to true on refetch, to avoid UI flicker
       const foundPost = await getPost(id);
       if (foundPost) {
         setPost(foundPost);
       } else {
-        showToast('Post not found.', 'error');
-        navigate('/');
+        // Only show "Post not found" if we're not in the process of deleting
+        if (!isDeleting) {
+          showToast('Post not found.', 'error');
+          navigate('/');
+        }
       }
       setIsLoading(false);
     }
-  }, [id, getPost, navigate, showToast]);
+  }, [id, getPost, navigate, showToast, isDeleting]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -172,6 +178,30 @@ const PostPreview: React.FC = () => {
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  const handleDeletePost = () => {
+    if (!id || !post) return;
+    setShowDeletePostModal(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!id || !post) return;
+    
+    setIsDeleting(true);
+    try {
+      await deletePost(id);
+      navigate(document.referrer.includes('/explore') ? "/explore" : "/");
+    } catch (error) {
+      showToast('Failed to delete post.', 'error');
+      setIsDeleting(false);
+    } finally {
+      setShowDeletePostModal(false);
+    }
+  };
+
+  const cancelDeletePost = () => {
+    setShowDeletePostModal(false);
   };
 
   if (isLoading || !post) {
@@ -223,13 +253,23 @@ const PostPreview: React.FC = () => {
             <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <VoteControl post={post} />
                 {isAuthor && (
-                    <Link
-                        to={`/edit/${post.id}`}
-                        className="inline-flex items-center gap-2 justify-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
-                    >
-                        <Icon name="edit" className="h-5 w-5" />
-                        Edit post
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            to={`/edit/${post.id}`}
+                            className="inline-flex items-center gap-2 justify-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+                        >
+                            <Icon name="edit" className="h-5 w-5" />
+                            Edit post
+                        </Link>
+                        <button
+                            onClick={handleDeletePost}
+                            disabled={isDeleting}
+                            className="inline-flex items-center gap-2 justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50"
+                        >
+                            <Icon name="trash" className="h-5 w-5" />
+                            {isDeleting ? 'Deleting...' : 'Delete post'}
+                        </button>
+                    </div>
                 )}
             </footer>
         </div>
@@ -265,6 +305,58 @@ const PostPreview: React.FC = () => {
         </div>
       </article>
 
+      {/* Delete Post Confirmation Modal */}
+      {showDeletePostModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Confirm Post Deletion
+                </h3>
+                <button
+                  onClick={cancelDeletePost}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <Icon name="x-mark" className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-slate-600 dark:text-slate-300">
+                  Are you sure you want to delete this post? This action cannot be undone.
+                </p>
+                {post && (
+                  <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-md">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                      Post: {post.title}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Author: {post.author}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelDeletePost}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-md hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeletePost}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Post'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
