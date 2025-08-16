@@ -28,7 +28,7 @@ Implementing Gemini AI and learning about basic CRUD operations using api.
 
 ## Tech Stack
 
-**Client:** Vuejs, TailwindCSS
+**Client:** React, TailwindCSS
 
 **Server:** Node, Express, SupabaseDb
 
