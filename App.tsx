@@ -4,7 +4,6 @@ import { PostsProvider } from './context/PostsContext';
 import { ToastProvider } from './context/ToastContext';
 import { UserProvider, useUser } from './context/UserContext';
 import Header from './components/Header';
-import PostList from './components/PostList';
 import PostEditor from './components/PostEditor';
 import PostPreview from './components/PostPreview';
 import Auth from './components/Auth';
