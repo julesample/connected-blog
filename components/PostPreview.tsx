@@ -209,7 +209,15 @@ const PostPreview: React.FC = () => {
             
             <div 
             className="prose prose-lg dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-headings:text-slate-800 dark:prose-headings:text-slate-100 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-strong:text-slate-800 dark:prose-strong:text-slate-100 prose-em:text-slate-700 dark:prose-em:text-slate-200"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ 
+                __html: post.content
+                    .replace(/<iframe([^>]*src="https:\/\/www\.youtube\.com[^"]*"[^>]*)><\/iframe>/gi, 
+                        '<div class="video-container"><iframe$1 allowfullscreen></iframe></div>')
+                    .replace(/<iframe([^>]*src="https:\/\/www\.youtube-nocookie\.com[^"]*"[^>]*)><\/iframe>/gi, 
+                        '<div class="video-container"><iframe$1 allowfullscreen></iframe></div>')
+                    .replace(/<iframe([^>]*src="https:\/\/youtu\.be[^"]*"[^>]*)><\/iframe>/gi, 
+                        '<div class="video-container"><iframe$1 allowfullscreen></iframe></div>')
+            }}
             />
 
             <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
