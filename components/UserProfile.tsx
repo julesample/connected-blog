@@ -7,6 +7,7 @@ import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import { usePostsContext } from '../context/PostsContext';
 import Icon from './Icon';
+import ProfileSkeleton from './ProfileSkeleton';
 
 const UserProfile: React.FC = () => {
     const { username } = useParams<{ username: string }>();
@@ -80,12 +81,7 @@ const UserProfile: React.FC = () => {
     };
 
     if (isLoading) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                <span className="ml-3 text-slate-600 dark:text-slate-400">Loading profile...</span>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     if (!user) {
