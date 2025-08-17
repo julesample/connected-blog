@@ -96,7 +96,7 @@ const Auth: React.FC = () => {
           <p className="mt-4 text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
             Your AI-powered space for creating, sharing, and discovering content. Join a community of writers and readers where artificial intelligence meets human creativity.
           </p>
-        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.github.io/jules-profile" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
+        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.vercel.app/" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
 
         </div>
 
