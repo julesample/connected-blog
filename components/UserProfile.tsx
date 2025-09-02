@@ -23,6 +23,39 @@ const UserProfile: React.FC = () => {
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 10;
+
+
+    // Calculate total upvotes and comments from posts
+    const totalUpvotes = posts.reduce((acc, post) => acc + post.upvotes.length, 0);
+    const totalComments = posts.reduce((acc, post) => acc + post.comments.length, 0);
+
+    // Calculate posting streak (consecutive days with posts)
+    const calculateStreak = (posts: Post[]) => {
+        if (posts.length === 0) return 0;
+        // Sort posts by createdAt descending
+        const sortedDates = posts
+            .map(post => new Date(post.createdAt).toDateString())
+            .filter((date, index, self) => self.indexOf(date) === index) // unique dates
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+        let streak = 1;
+        for (let i = 1; i < sortedDates.length; i++) {
+            const currentDate = new Date(sortedDates[i]);
+            const prevDate = new Date(sortedDates[i - 1]);
+            const diff = (prevDate.getTime() - currentDate.getTime()) / (1000 * 3600 * 24);
+            if (diff === 1) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    };
+
+    const postingStreak = calculateStreak(posts);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -47,6 +80,10 @@ const UserProfile: React.FC = () => {
 
         fetchData();
     }, [username]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const handleDeletePost = async (postId: string) => {
         try {
@@ -105,9 +142,22 @@ const UserProfile: React.FC = () => {
     
     const isOwnProfile = currentUser?.username === user.username;
 
+    const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+    const filteredPosts = posts.filter(post =>
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+    const paginatedPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+
     return (
         <div className="space-y-8">
-            {/* Profile Header */}
+            {/* Profile Header */} 
             <div className="p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="flex-shrink-0 h-24 w-24 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
@@ -127,6 +177,18 @@ const UserProfile: React.FC = () => {
                             <span className="flex items-center gap-1">
                                 <Icon name="edit" className="h-4 w-4" />
                                 {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Icon name="arrow-up" className="h-4 w-4" />
+                                {totalUpvotes} {totalUpvotes === 1 ? 'upvote' : 'upvotes'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
+                                {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Icon name="sparkles" className="h-4 w-4" />
+                                {postingStreak} {postingStreak === 1 ? 'day' : 'days'} streak
                             </span>
                         </div>
                     </div>
@@ -168,120 +230,168 @@ const UserProfile: React.FC = () => {
                         </Link>
                     )}
                 </div>
-                
-                {posts.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                            <thead className="bg-slate-50 dark:bg-slate-700">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                        Title
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                        Engagement
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                        Last Updated
-                                    </th>
-                                    <th scope="col" className="relative px-6 py-3">
-                                        <span className="sr-only">Actions</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                {posts.map(post => (
-                                    <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <Link 
-                                                    to={`/post/${post.id}`} 
-                                                    className="font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                                                >
-                                                    {post.title}
-                                                </Link>
-                                                <div 
-                                                    className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
-                                                    dangerouslySetInnerHTML={{ 
-                                                        __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...' 
-                                                    }}
-                                                />
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-4 text-sm">
-                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                                    <Icon name="arrow-up" className="h-4 w-4" />
-                                                    {post.upvotes.length}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                                                    <Icon name="arrow-down" className="h-4 w-4" />
-                                                    {post.downvotes.length}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                                                    <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
-                                                    {post.comments.length}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                            {new Date(post.updatedAt).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <div className="flex items-center gap-2 justify-end">
-                                                <Link 
-                                                    to={`/post/${post.id}`} 
-                                                    className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors" 
-                                                    title="View Post"
-                                                >
-                                                    <Icon name="eye" className="h-4 w-4" />
-                                                    View
-                                                </Link>
-                                                {isOwnProfile && (
-                                                    <>
-                                                        <Link 
-                                                            to={`/edit/${post.id}`} 
-                                                            className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors" 
-                                                            title="Edit Post"
-                                                        >
-                                                            <Icon name="edit" className="h-4 w-4" />
-                                                            Edit
-                                                        </Link>
-                                                        <button 
-                                                            onClick={() => {
-                                                                setPostToDelete(post.id);
-                                                                setShowDeleteModal(true);
-                                                            }}
-                                                            className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors" 
-                                                            title="Delete Post"
-                                                        >
-                                                            <Icon name="trash" className="h-4 w-4" />
-                                                            Delete
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <div className="flex-1">
+                        <label htmlFor="search" className="sr-only">Search Posts</label>
+                        <div className="relative rounded-md shadow-sm">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <Icon name="search" className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="search"
+                                name="search"
+                                id="search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="block w-full rounded-md border-0 bg-white dark:bg-slate-800 py-2.5 pl-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
+                                placeholder="Search by title or content..."
+                            />
+                        </div>
                     </div>
+                </div>
+                
+                {filteredPosts.length > 0 ? (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                <thead className="bg-slate-50 dark:bg-slate-700">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                            Title
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                            Engagement
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                            Last Updated
+                                        </th>
+                                        <th scope="col" className="relative px-6 py-3">
+                                            <span className="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                    {paginatedPosts.map(post => (
+                                        <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <Link
+                                                        to={`/post/${post.id}`}
+                                                        className="font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                                    >
+                                                       {truncateText(post.title, 50)}
+                                                    </Link>
+                                                    <div
+                                                        className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-4 text-sm">
+                                                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                        <Icon name="arrow-up" className="h-4 w-4" />
+                                                        {post.upvotes.length}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                                        <Icon name="arrow-down" className="h-4 w-4" />
+                                                        {post.downvotes.length}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                                                        <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
+                                                        {post.comments.length}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                                                {new Date(post.updatedAt).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                })}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <div className="flex items-center gap-2 justify-end">
+                                                    <Link
+                                                        to={`/post/${post.id}`}
+                                                        className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
+                                                        title="View Post"
+                                                    >
+                                                        <Icon name="eye" className="h-4 w-4" />
+                                                        View
+                                                    </Link>
+                                                    {isOwnProfile && (
+                                                        <>
+                                                            <Link
+                                                                to={`/edit/${post.id}`}
+                                                                className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                                                                title="Edit Post"
+                                                            >
+                                                                <Icon name="edit" className="h-4 w-4" />
+                                                                Edit
+                                                            </Link>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPostToDelete(post.id);
+                                                                    setShowDeleteModal(true);
+                                                                }}
+                                                                className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                                                                title="Delete Post"
+                                                            >
+                                                                <Icon name="trash" className="h-4 w-4" />
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                <div className="text-sm text-slate-500 dark:text-slate-400">
+                                    Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="p-12 text-center">
                         <Icon name="edit" className="h-16 w-16 mx-auto text-slate-400 mb-4" />
                         <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                            {isOwnProfile ? "You haven't created any posts yet" : `${user.username} has not created any posts yet`}
+                            {searchQuery && posts.length > 0 ? "No posts found matching your search." : isOwnProfile ? "You haven't created any posts yet" : `${user.username} has not created any posts yet`}
                         </h3>
-                        {isOwnProfile && (
+                        {(!searchQuery || posts.length === 0) && isOwnProfile && (
                             <p className="text-slate-500 dark:text-slate-400 mb-4">
                                 Share your thoughts and ideas with the community!
                             </p>
                         )}
-                        {isOwnProfile && (
+                        {(!searchQuery || posts.length === 0) && isOwnProfile && (
                             <Link
                                 to="/new"
                                 className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 transition-colors"

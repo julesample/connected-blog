@@ -34,6 +34,11 @@ const Explore: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
 
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy]);
@@ -65,9 +70,14 @@ const Explore: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center gap-4 flex-wrap">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Explore All Content
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Explore All Content
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Total Posts: <span className="font-semibold text-primary-600 dark:text-primary-400">{allPosts.length}</span>
+          </p>
+        </div>
         <Link
           to="/new"
           className="inline-flex items-center gap-2 justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
@@ -181,7 +191,7 @@ const Explore: React.FC = () => {
                   {paginatedPosts.map((post: Post) => (
                     <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link to={`/post/${post.id}`} className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{post.title}</Link>
+                        <Link to={`/post/${post.id}`} title={post.title} className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{truncateText(post.title, 50)}</Link>
                       </td>
                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                         <Link to={`/profile/${post.author}`} className="hover:underline">{post.author}</Link>
