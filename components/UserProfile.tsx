@@ -173,20 +173,20 @@ const UserProfile: React.FC = () => {
                                 }}
                             />
                         </p>
-                        <div className="mt-3 flex items-center justify-center sm:justify-start gap-4 text-sm text-slate-500 dark:text-slate-400">
-                            <span className="flex items-center gap-1">
+                        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-start gap-3 sm:gap-4 text-sm text-slate-500 dark:text-slate-400">
+                            <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="edit" className="h-4 w-4" />
                                 {posts.length} {posts.length === 1 ? 'post' : 'posts'}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="arrow-up" className="h-4 w-4" />
                                 {totalUpvotes} {totalUpvotes === 1 ? 'upvote' : 'upvotes'}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
                                 {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="sparkles" className="h-4 w-4" />
                                 {postingStreak} {postingStreak === 1 ? 'day' : 'days'} streak
                             </span>
@@ -353,41 +353,68 @@ const UserProfile: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Pagination */}
                         {totalPages > 1 && (
-                            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                                <div className="text-sm text-slate-500 dark:text-slate-400">
-                                    Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
+                            <>
+                                <div className="block sm:hidden px-4 py-3 bg-slate-50 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-600">
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                                            {currentPage} of {totalPages}
+                                        </span>
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Previous
-                                    </button>
-                                    <span className="text-sm text-slate-500 dark:text-slate-400">
-                                        Page {currentPage} of {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Next
-                                    </button>
+
+                                {/* Desktop Pagination */}
+                                <div className="hidden sm:flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                                        Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                                            Page {currentPage} of {totalPages}
+                                        </span>
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </>
                 ) : (
-                    <div className="p-12 text-center">
-                        <Icon name="edit" className="h-16 w-16 mx-auto text-slate-400 mb-4" />
-                        <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    <div className="p-6 sm:p-12 text-center">
+                        <Icon name="edit" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
+                        <h3 className="text-lg sm:text-xl font-medium text-slate-900 dark:text-white mb-2">
                             {searchQuery && posts.length > 0 ? "No posts found matching your search." : isOwnProfile ? "You haven't created any posts yet" : `${user.username} has not created any posts yet`}
                         </h3>
                         {(!searchQuery || posts.length === 0) && isOwnProfile && (
-                            <p className="text-slate-500 dark:text-slate-400 mb-4">
+                            <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm sm:text-base">
                                 Share your thoughts and ideas with the community!
                             </p>
                         )}
