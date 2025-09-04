@@ -97,7 +97,7 @@ const Settings: React.FC = () => {
                             disabled={isBioLoading}
                             className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 disabled:opacity-50"
                         >
-                            <Icon name="save" className="h-5 w-5" />
+                            <Icon name="pencil-square" className="h-5 w-5" />
                             {isBioLoading ? 'Saving...' : 'Save Bio'}
                         </button>
                     </div>
@@ -159,7 +159,7 @@ const Settings: React.FC = () => {
                             disabled={isPasswordLoading}
                             className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 disabled:opacity-50"
                         >
-                            <Icon name="save" className="h-5 w-5" />
+                            <Icon name="pencil-square" className="h-5 w-5" />
                             {isPasswordLoading ? 'Saving...' : 'Change Password'}
                         </button>
                     </div>

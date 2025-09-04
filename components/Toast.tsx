@@ -14,7 +14,7 @@ const toastStyles = {
     bg: 'bg-green-100 dark:bg-green-900',
     border: 'border-green-500 dark:border-green-400',
     text: 'text-green-800 dark:text-green-200',
-    icon: <Icon name="save" className="h-6 w-6 text-green-500" />
+    icon: <Icon name="pencil-square" className="h-6 w-6 text-green-500" />
   },
   error: {
     bg: 'bg-red-100 dark:bg-red-900',

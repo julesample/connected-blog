@@ -101,7 +101,7 @@ const Auth: React.FC = () => {
           <a
             href="#"
             onClick={(e) => { e.preventDefault(); setShowModal(true); }}
-            className="mt-6 inline-block text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 underline transition-colors"
+            className="mt-6 inline-block text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
           >
             Learn More
           </a>

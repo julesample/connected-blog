@@ -24,8 +24,8 @@ const About: React.FC = () => {
         </h1>
         <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">
           Your AI-powered space for creating, sharing, and discovering content.
+          Made by <a href="https://julesample.vercel.app" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a>
         </p>
-        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.vercel.app" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
       </div>
 
       <div className="p-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
@@ -49,7 +49,7 @@ const About: React.FC = () => {
             <FeatureCard icon={<Icon name="sparkles" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="AI Content Generation">
                 Integrated with the Gemini API, the post editor can help you brainstorm ideas, draft paragraphs, or write entire articles from a simple prompt.
             </FeatureCard>
-            <FeatureCard icon={<Icon name="chat-bubble-left-ellipsis" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Full Post Interaction">
+            <FeatureCard icon={<Icon name="chat-bubble-left-right" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Full Post Interaction">
                 Engage with content through a full-featured comment system (create, edit, delete) and an upvote/downvote system.
             </FeatureCard>
             <FeatureCard icon={<Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Content Management">

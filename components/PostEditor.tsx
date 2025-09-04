@@ -167,7 +167,7 @@ const PostEditor: React.FC = () => {
             disabled={isSaving}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 min-h-[44px] sm:min-h-0"
           >
-            <Icon name="save" className="h-5 w-5" />
+            <Icon name="pencil-square" className="h-5 w-5" />
             {isSaving ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post')}
           </button>
         </div>
