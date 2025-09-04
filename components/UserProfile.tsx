@@ -203,17 +203,17 @@ const UserProfile: React.FC = () => {
                         </div>
                     </div>
                     {isOwnProfile && (
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                             <Link
                                 to="/settings"
-                                className="inline-flex items-center gap-2 justify-center rounded-md bg-slate-200 dark:bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-300 dark:hover:bg-slate-600"
+                                className="inline-flex items-center gap-2 justify-center rounded-md bg-slate-200 dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-300 dark:hover:bg-slate-600 min-h-[44px] sm:min-h-0"
                             >
                                 <Icon name="cog-6-tooth" className="h-5 w-5" />
                                 Edit Profile
                             </Link>
                             <button
                                 onClick={() => setShowDeleteAccountModal(true)}
-                                className="inline-flex items-center gap-2 justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+                                className="inline-flex items-center gap-2 justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 min-h-[44px] sm:min-h-0"
                             >
                                 <Icon name="trash" className="h-5 w-5" />
                                 Delete Account

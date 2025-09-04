@@ -256,10 +256,10 @@ const PostPreview: React.FC = () => {
             <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <VoteControl post={post} />
                 {isAuthor && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
                         <Link
                             to={`/edit/${post.id}`}
-                            className="inline-flex items-center gap-2 justify-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+                            className="inline-flex items-center gap-2 justify-center rounded-md bg-yellow-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 min-h-[44px] sm:min-h-0"
                         >
                             <Icon name="pencil-square" className="h-5 w-5" />
                             Edit post
@@ -267,7 +267,7 @@ const PostPreview: React.FC = () => {
                         <button
                             onClick={handleDeletePost}
                             disabled={isDeleting}
-                            className="inline-flex items-center gap-2 justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50"
+                            className="inline-flex items-center gap-2 justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 min-h-[44px] sm:min-h-0"
                         >
                             <Icon name="trash" className="h-5 w-5" />
                             {isDeleting ? 'Deleting...' : 'Delete post'}
@@ -292,7 +292,7 @@ const PostPreview: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isSubmittingComment || !newComment.trim()}
-                    className="mt-3 inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50"
+                    className="mt-3 inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 min-h-[44px] sm:min-h-0"
                 >
                     {isSubmittingComment ? 'Posting...' : 'Post Comment'}
                 </button>

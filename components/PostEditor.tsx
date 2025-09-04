@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePostsContext } from '../context/PostsContext';
 import { useToast } from '../context/ToastContext';
@@ -133,7 +133,7 @@ const PostEditor: React.FC = () => {
                 type="button"
                 onClick={handleGenerateContent}
                 disabled={isAiLoading}
-                className="inline-flex items-center gap-2 justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 justify-center rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0"
               >
                 {isAiLoading ? (
                   <>
@@ -153,14 +153,19 @@ const PostEditor: React.FC = () => {
             </div>
         </div>
 
-        <div className="flex items-center justify-end gap-x-4 border-t border-slate-200 dark:border-slate-700 pt-6">
-          <button type="button" onClick={() => navigate(-1)} className="text-sm font-semibold leading-6 text-slate-900 dark:text-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 sm:gap-x-4 border-t border-slate-200 dark:border-slate-700 pt-6">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 min-h-[44px] sm:min-h-0"
+          >
+            <Icon name="arrow-turn-up-left" className="h-4 w-4" />
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 min-h-[44px] sm:min-h-0"
           >
             <Icon name="save" className="h-5 w-5" />
             {isSaving ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post')}
