@@ -233,7 +233,10 @@ const PostPreview: React.FC = () => {
                     {post.title}
                 </h1>
                 <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                    By <Link to={`/profile/${post.author}`} className="font-medium text-primary-600 hover:underline dark:text-primary-400">{post.author}</Link> &bull; Last updated on {new Date(post.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    By <Link to={`/profile/${post.author}`} className="font-medium text-primary-600 hover:underline dark:text-primary-400">{post.author}</Link> &bull; Created on {new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
+                        <> &bull; Last updated on {new Date(post.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</>
+                    )}
                 </p>
             </header>
             

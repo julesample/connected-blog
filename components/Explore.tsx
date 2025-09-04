@@ -152,7 +152,7 @@ const Explore: React.FC = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Title</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Author</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Votes</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Last Updated</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Created / Updated</th>
                     <th scope="col" className="relative px-6 py-3">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -225,11 +225,18 @@ const Explore: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(post.updatedAt).toLocaleDateString('en-US', {
+                      Created: {new Date(post.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
                       })}
+                      {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
+                        <> | Updated: {new Date(post.updatedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}</>
+                      )}
                     </span>
                     <Link
                       to={`/post/${post.id}`}
@@ -251,7 +258,7 @@ const Explore: React.FC = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Title</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Author</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Votes</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Last Updated</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Created / Updated</th>
                     <th scope="col" className="relative px-6 py-3">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -270,7 +277,12 @@ const Explore: React.FC = () => {
                         <VoteControl post={post} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                        {new Date(post.updatedAt).toLocaleDateString()}
+                        <div>
+                          <div>Created: {new Date(post.createdAt).toLocaleDateString()}</div>
+                          {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
+                            <div>Updated: {new Date(post.updatedAt).toLocaleDateString()}</div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <Link to={`/post/${post.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800" title="View Post">
