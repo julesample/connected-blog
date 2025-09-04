@@ -41,6 +41,14 @@ const UserProfile: React.FC = () => {
             .filter((date, index, self) => self.indexOf(date) === index) // unique dates
             .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+
+        // If the last post is not today or yesterday, streak is 0
+        if (sortedDates[0] !== today && sortedDates[0] !== yesterday) {
+            return 0;
+        }
+
         let streak = 1;
         for (let i = 1; i < sortedDates.length; i++) {
             const currentDate = new Date(sortedDates[i]);
@@ -133,7 +141,7 @@ const UserProfile: React.FC = () => {
                     to="/explore" 
                     className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
                 >
-                    <Icon name="back" className="h-4 w-4" />
+                    <Icon name="arrow-turn-up-left" className="h-4 w-4" />
                     Back to Explore
                 </Link>
             </div>
@@ -175,7 +183,7 @@ const UserProfile: React.FC = () => {
                         </p>
                         <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-start gap-3 sm:gap-4 text-sm text-slate-500 dark:text-slate-400">
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
-                                <Icon name="edit" className="h-4 w-4" />
+                                <Icon name="pencil-square" className="h-4 w-4" />
                                 {posts.length} {posts.length === 1 ? 'post' : 'posts'}
                             </span>
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
@@ -187,8 +195,10 @@ const UserProfile: React.FC = () => {
                                 {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
                             </span>
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
-                                <Icon name="sparkles" className="h-4 w-4" />
-                                {postingStreak} {postingStreak === 1 ? 'day' : 'days'} streak
+                                <Icon name={postingStreak > 0 ? "fire" : "exclamation-triangle"} className="h-4 w-4" />
+                                {postingStreak > 0 
+                                ? `${postingStreak} day${postingStreak > 1 ? "s" : ""} streak` 
+                                : "Broken streak"}
                             </span>
                         </div>
                     </div>
@@ -217,7 +227,7 @@ const UserProfile: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Icon name="edit" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                        <Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                         Posts by {user.username} ({posts.length})
                     </h2>
                     {isOwnProfile && (
@@ -236,7 +246,7 @@ const UserProfile: React.FC = () => {
                         <label htmlFor="search" className="sr-only">Search Posts</label>
                         <div className="relative rounded-md shadow-sm">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <Icon name="search" className="h-5 w-5 text-slate-400" />
+                                <Icon name="magnifying-glass" className="h-5 w-5 text-slate-400" />
                             </div>
                             <input
                                 type="search"
@@ -330,7 +340,7 @@ const UserProfile: React.FC = () => {
                                                                 className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
                                                                 title="Edit Post"
                                                             >
-                                                                <Icon name="edit" className="h-4 w-4" />
+                                                                <Icon name="pencil-square" className="h-4 w-4" />
                                                                 Edit
                                                             </Link>
                                                             <button
@@ -409,7 +419,7 @@ const UserProfile: React.FC = () => {
                     </>
                 ) : (
                     <div className="p-6 sm:p-12 text-center">
-                        <Icon name="edit" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
+                        <Icon name="pencil-square" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
                         <h3 className="text-lg sm:text-xl font-medium text-slate-900 dark:text-white mb-2">
                             {searchQuery && posts.length > 0 ? "No posts found matching your search." : isOwnProfile ? "You haven't created any posts yet" : `${user.username} has not created any posts yet`}
                         </h3>

@@ -128,7 +128,7 @@ const Header: React.FC = () => {
                              hover:bg-slate-300 dark:hover:bg-slate-600 focus:outline-none focus:ring-2
                              focus:ring-offset-2 focus:ring-primary-500 focus:ring-offset-slate-50 dark:focus:ring-offset-slate-900"
                 >
-                  <Icon name="logout" className="h-5 w-5" />
+                  <Icon name="lock-closed" className="h-5 w-5" />
                 </button>
               </div>
             )}

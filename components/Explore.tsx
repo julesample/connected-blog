@@ -92,7 +92,7 @@ const Explore: React.FC = () => {
           <label htmlFor="search" className="sr-only">Search All Posts</label>
           <div className="relative rounded-md shadow-sm">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Icon name="search" className="h-5 w-5 text-slate-400" />
+                <Icon name="magnifying-glass" className="h-5 w-5 text-slate-400" />
               </div>
               <input
                 type="search"
@@ -188,13 +188,13 @@ const Explore: React.FC = () => {
           </>
         ): allPosts.length === 0 ? (
           <div className="p-6 sm:p-12 text-center text-slate-500 dark:text-slate-400">
-            <Icon name="edit" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
+            <Icon name="pencil-square" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
             <h3 className="text-lg sm:text-xl font-medium">No content has been created yet.</h3>
             <p className="mt-2 text-sm sm:text-base">Be the first one to create a post!</p>
           </div>
         ) : filteredAndSortedPosts.length === 0 ? (
            <div className="p-6 sm:p-12 text-center text-slate-500 dark:text-slate-400">
-            <Icon name="search" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
+            <Icon name="magnifying-glass" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
             <h3 className="text-lg sm:text-xl font-medium">No content found</h3>
             <p className="mt-2 text-sm sm:text-base">Your search for "{searchQuery}" did not match any posts.</p>
           </div>

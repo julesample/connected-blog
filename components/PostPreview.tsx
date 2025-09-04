@@ -221,7 +221,7 @@ const PostPreview: React.FC = () => {
           to={document.referrer.includes('/explore') ? "/explore" : "/"}
           className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
         >
-          <Icon name="back" className="h-5 w-5" />
+          <Icon name="arrow-turn-up-left" className="h-5 w-5" />
           Back to list
         </Link>
       </div>
@@ -258,7 +258,7 @@ const PostPreview: React.FC = () => {
                             to={`/edit/${post.id}`}
                             className="inline-flex items-center gap-2 justify-center rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
                         >
-                            <Icon name="edit" className="h-5 w-5" />
+                            <Icon name="pencil-square" className="h-5 w-5" />
                             Edit post
                         </Link>
                         <button

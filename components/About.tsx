@@ -52,7 +52,7 @@ const About: React.FC = () => {
             <FeatureCard icon={<Icon name="chat-bubble-left-ellipsis" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Full Post Interaction">
                 Engage with content through a full-featured comment system (create, edit, delete) and an upvote/downvote system.
             </FeatureCard>
-            <FeatureCard icon={<Icon name="edit" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Content Management">
+            <FeatureCard icon={<Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />} title="Content Management">
                 Users have complete control over their own posts with the ability to Create, Read, Update, and Delete them through an intuitive dashboard.
             </FeatureCard>
         </div>
