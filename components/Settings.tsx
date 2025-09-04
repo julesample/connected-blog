@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import Icon from './Icon';
-import TinyMCEEditor from './TinyMCEEditor';
+
 
 const Settings: React.FC = () => {
     const { currentUser, updateUserProfile } = useUser();

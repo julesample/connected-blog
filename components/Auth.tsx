@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
-
+import Icon from './Icon';
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mathQuestion, setMathQuestion] = useState({ question: '', answer: 0 });
   const [userAnswer, setUserAnswer] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const { login, register } = useUser();
 
   // Generate math question for registration
@@ -95,10 +96,91 @@ const Auth: React.FC = () => {
           </h1>
           <p className="mt-4 text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
             Your AI-powered space for creating, sharing, and discovering content. Join a community of writers and readers where artificial intelligence meets human creativity.
+            Made by <a href="https://julesample.vercel.app/" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a>
           </p>
-        <p className="mt-4 text-xl text-slate-600 dark:text-slate-400">made by <a href="https://julesample.vercel.app/" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a></p>
-
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setShowModal(true); }}
+            className="mt-6 inline-block text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 underline transition-colors"
+          >
+            Learn More
+          </a>
         </div>
+
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setShowModal(false)}>
+            <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative" onClick={(e) => e.stopPropagation()}>
+
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">What is Connected-Blog?</h3>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Connected-Blog is a modern Content Management System (CMS) designed to demonstrate the power
+                  of integrating large language models into web applications. It provides a seamless experience for multiple users
+                  to register, create rich blog posts, and interact with content from the entire community.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-6">Core Features</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-full">
+                       <Icon name="user-circle" className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">User Profiles & Settings</h4>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Full user authentication, public profiles to view user content, and a private settings page to update your bio and password.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-full">
+                     <Icon name="sparkles" className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Content Generation</h4>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Integrated with the Gemini API, the post editor can help you brainstorm ideas, draft paragraphs, or write entire articles from a simple prompt.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-full">
+                       <Icon name="chat-bubble-left-right" className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">Full Post Interaction</h4>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Engage with content through a full-featured comment system (create, edit, delete) and an upvote/downvote system.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-primary-100 dark:bg-primary-900/50 p-2 rounded-full">
+                        <Icon name="pencil-square" className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">Content Management</h4>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      Users have complete control over their own posts with the ability to Create, Read, Update, and Delete them through an intuitive dashboard.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowModal(false)}
+                className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 dark:hover:text-white focus:outline-none text-2xl"
+                aria-label="Close modal"
+              >
+                &#x2715;
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Authentication Form */}
         <div className="max-w-md mx-auto">

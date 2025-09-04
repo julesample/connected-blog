@@ -195,7 +195,7 @@ const UserProfile: React.FC = () => {
                                 {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
                             </span>
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
-                                <Icon name={postingStreak > 0 ? "fire" : "exclamation-triangle"} className="h-4 w-4" />
+                                <Icon name={postingStreak > 0 ? "bolt" : "bolt-slash"} className="h-4 w-4" />
                                 {postingStreak > 0 
                                 ? `${postingStreak} day${postingStreak > 1 ? "s" : ""} streak` 
                                 : "Broken streak"}
