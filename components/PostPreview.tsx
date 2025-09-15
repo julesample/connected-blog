@@ -235,13 +235,13 @@ const PostPreview: React.FC = () => {
   return (
     <div>
       <div className="mb-8">
-        <Link
-          to={document.referrer.includes('/explore') ? "/explore" : "/"}
+        <button
+          onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
         >
           <Icon name="arrow-turn-up-left" className="h-5 w-5" />
-          Back to list
-        </Link>
+          Back to recent opened
+        </button>
       </div>
 
       <article className="bg-white dark:bg-slate-800 rounded-lg shadow-xl">

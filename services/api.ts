@@ -93,89 +93,30 @@ export const updateUser = async (
       .maybeSingle();
 
     if (!user) {
-      return { success: false, message: 'User not found.' };
+      return { success: false, message: 'User not found' };
     }
 
-    let updateData: any = {};
+    // Update user data
+    const updateData: any = {};
+    if (data.bio !== undefined) updateData.bio = data.bio;
+    if (data.email !== undefined) updateData.email = data.email;
 
-    // Bio change logic
-    if (typeof data.bio !== 'undefined') {
-      updateData.bio = data.bio;
-    }
-
-    // Update user in database
-    const { data: updatedUser, error } = await supabase
+    const { error } = await supabase
       .from('users')
       .update(updateData)
-      .eq('username', username)
-      .select()
-      .maybeSingle();
+      .eq('username', username);
 
     if (error) {
       console.error('Error updating user:', error);
       return { success: false, message: 'Failed to update user.' };
     }
 
-    return {
-      success: true,
-      user: {
-        username: updatedUser.username,
-        email: updatedUser.email,
-        bio: updatedUser.bio
-      }
-    };
+    // Return updated user
+    const updatedUser = await getUserByUsername(username);
+    return { success: true, user: updatedUser || undefined };
   } catch (error) {
     console.error('Error in updateUser:', error);
-    return { success: false, message: 'An error occurred during update.' };
-  }
-};
-
-export const deleteUserAccount = async (username: string, password: string): Promise<{ success: boolean; message: string }> => {
-  try {
-    // Get current user
-    const { data: user } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (!user) {
-      return { success: false, message: 'User not found.' };
-    }
-
-    // Verify password by attempting to sign in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: password,
-    });
-
-    if (signInError) {
-      return { success: false, message: 'Invalid password.' };
-    }
-
-    // Delete user data (posts, comments, votes will be cascade deleted)
-    const { error: deleteError } = await supabase
-      .from('users')
-      .delete()
-      .eq('username', username);
-
-    if (deleteError) {
-      console.error('Error deleting user:', deleteError);
-      return { success: false, message: 'Failed to delete account.' };
-    }
-
-    // Delete from Supabase Auth
-    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
-    
-    if (authDeleteError) {
-      console.error('Error deleting auth user:', authDeleteError);
-      // Continue anyway as the main user data is deleted
-    }
-
-    return { success: true, message: 'Account deleted successfully.' };
-  } catch (error) {
-    console.error('Error in deleteUserAccount:', error);
-    return { success: false, message: 'An error occurred during account deletion.' };
+    return { success: false, message: 'An error occurred while updating user.' };
   }
 };
 
@@ -194,7 +135,7 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
         ),
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching posts:', error);
@@ -210,7 +151,7 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
 
 export const fetchUserPosts = async (username: string): Promise<Post[]> => {
   try {
-    // First get the user ID from username
+    // Get user ID
     const { data: user } = await supabase
       .from('users')
       .select('id')
@@ -233,7 +174,7 @@ export const fetchUserPosts = async (username: string): Promise<Post[]> => {
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
       .eq('author_id', user.id)
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching user posts:', error);
@@ -247,7 +188,120 @@ export const fetchUserPosts = async (username: string): Promise<Post[]> => {
   }
 };
 
-export const fetchPostById = async (id: string): Promise<Post | null> => {
+export const fetchUserPinnedPosts = async (username: string): Promise<Post[]> => {
+  try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return [];
+    }
+
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .eq('author_id', user.id)
+      .eq('pinned', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user pinned posts:', error);
+      return [];
+    }
+
+    return posts.map(transformPostFromDB);
+  } catch (error) {
+    console.error('Error in fetchUserPinnedPosts:', error);
+    return [];
+  }
+};
+
+export const fetchUserUnpinnedPostsPaginated = async (username: string, page: number, limit: number): Promise<{ posts: Post[], total: number }> => {
+  try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return { posts: [], total: 0 };
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { data: posts, error, count } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `, { count: 'exact' })
+      .eq('author_id', user.id)
+      .eq('pinned', false)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching user unpinned posts:', error);
+      return { posts: [], total: 0 };
+    }
+
+    return { posts: posts.map(transformPostFromDB), total: count || 0 };
+  } catch (error) {
+    console.error('Error in fetchUserUnpinnedPostsPaginated:', error);
+    return { posts: [], total: 0 };
+  }
+};
+
+export const fetchUserTotalPostsCount = async (username: string): Promise<number> => {
+  try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return 0;
+    }
+
+    const { count, error } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('author_id', user.id);
+
+    if (error) {
+      console.error('Error fetching user total posts count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Error in fetchUserTotalPostsCount:', error);
+    return 0;
+  }
+};
+
+export const fetchPostById = async (postId: string): Promise<Post | null> => {
   try {
     const { data: post, error } = await supabase
       .from('posts')
@@ -260,7 +314,7 @@ export const fetchPostById = async (id: string): Promise<Post | null> => {
         ),
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
-      .eq('id', id)
+      .eq('id', postId)
       .maybeSingle();
 
     if (error || !post) {
@@ -275,64 +329,27 @@ export const fetchPostById = async (id: string): Promise<Post | null> => {
   }
 };
 
-export const insertPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'comments' | 'upvotes' | 'downvotes'>) => {
+export const createPost = async (title: string, content: string, username: string): Promise<Post | null> => {
   try {
-    // Get author ID
-    const { data: author } = await supabase
+    // Get user ID
+    const { data: user } = await supabase
       .from('users')
       .select('id')
-      .eq('username', postData.author)
+      .eq('username', username)
       .maybeSingle();
 
-    if (!author) {
-      throw new Error('Author not found');
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    const { data: post, error } = await supabase
+    // Create post
+    const { data: newPost, error } = await supabase
       .from('posts')
       .insert({
-        title: postData.title,
-        content: postData.content,
-        author_id: author.id
+        title,
+        content,
+        author_id: user.id
       })
-      .select(`
-        *,
-        author:users!posts_author_id_fkey(username)
-      `)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error creating post:', error);
-      throw new Error('Failed to create post');
-    }
-
-    return {
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      author: post.author.username,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
-      comments: [],
-      upvotes: [],
-      downvotes: []
-    };
-  } catch (error) {
-    console.error('Error in insertPost:', error);
-    throw error;
-  }
-};
-
-export const modifyPost = async (id: string, postUpdate: Partial<Post>): Promise<Post | null> => {
-  try {
-    const updateData: any = {};
-    if (postUpdate.title) updateData.title = postUpdate.title;
-    if (postUpdate.content) updateData.content = postUpdate.content;
-
-    const { data: post, error } = await supabase
-      .from('posts')
-      .update(updateData)
-      .eq('id', id)
       .select(`
         *,
         author:users!posts_author_id_fkey(username),
@@ -344,24 +361,81 @@ export const modifyPost = async (id: string, postUpdate: Partial<Post>): Promise
       `)
       .maybeSingle();
 
-    if (error || !post) {
-      console.error('Error updating post:', error);
+    if (error) {
+      console.error('Error creating post:', error);
       return null;
     }
 
-    return transformPostFromDB(post);
+    return transformPostFromDB(newPost);
   } catch (error) {
-    console.error('Error in modifyPost:', error);
+    console.error('Error in createPost:', error);
     return null;
   }
 };
 
-export const removePost = async (id: string): Promise<{ success: boolean }> => {
+export const updatePost = async (postId: string, title: string, content: string, username: string): Promise<Post | null> => {
   try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update post
+    const { data: updatedPost, error } = await supabase
+      .from('posts')
+      .update({
+        title,
+        content
+      })
+      .eq('id', postId)
+      .eq('author_id', user.id)
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error updating post:', error);
+      return null;
+    }
+
+    return transformPostFromDB(updatedPost);
+  } catch (error) {
+    console.error('Error in updatePost:', error);
+    return null;
+  }
+};
+
+export const deletePost = async (postId: string, username: string): Promise<{ success: boolean }> => {
+  try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return { success: false };
+    }
+
     const { error } = await supabase
       .from('posts')
       .delete()
-      .eq('id', id);
+      .eq('id', postId)
+      .eq('author_id', user.id);
 
     if (error) {
       console.error('Error deleting post:', error);
@@ -370,32 +444,33 @@ export const removePost = async (id: string): Promise<{ success: boolean }> => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error in removePost:', error);
+    console.error('Error in deletePost:', error);
     return { success: false };
   }
 };
 
-// --- Interactions API ---
+// --- Comment API ---
 
-export const insertComment = async (postId: string, commentData: Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comment | null> => {
+export const addComment = async (postId: string, content: string, username: string): Promise<Comment | null> => {
   try {
-    // Get author ID
-    const { data: author } = await supabase
+    // Get user ID
+    const { data: user } = await supabase
       .from('users')
       .select('id')
-      .eq('username', commentData.author)
+      .eq('username', username)
       .maybeSingle();
 
-    if (!author) {
-      throw new Error('Author not found');
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    const { data: comment, error } = await supabase
+    // Add comment
+    const { data: newComment, error } = await supabase
       .from('comments')
       .insert({
         post_id: postId,
-        author_id: author.id,
-        content: commentData.content
+        author_id: user.id,
+        content
       })
       .select(`
         *,
@@ -404,61 +479,86 @@ export const insertComment = async (postId: string, commentData: Omit<Comment, '
       .maybeSingle();
 
     if (error) {
-      console.error('Error creating comment:', error);
+      console.error('Error adding comment:', error);
       return null;
     }
 
     return {
-      id: comment.id,
-      author: comment.author.username,
-      content: comment.content,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at
+      id: newComment.id,
+      author: newComment.author.username,
+      content: newComment.content,
+      createdAt: newComment.created_at,
+      updatedAt: newComment.updated_at
     };
   } catch (error) {
-    console.error('Error in insertComment:', error);
+    console.error('Error in addComment:', error);
     return null;
   }
 };
 
-export const modifyComment = async (postId: string, commentId: string, content: string): Promise<Comment | null> => {
+export const updateComment = async (commentId: string, content: string, username: string): Promise<Comment | null> => {
   try {
-    const { data: comment, error } = await supabase
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update comment
+    const { data: updatedComment, error } = await supabase
       .from('comments')
-      .update({ content })
+      .update({
+        content
+      })
       .eq('id', commentId)
-      .eq('post_id', postId)
+      .eq('author_id', user.id)
       .select(`
         *,
         author:users!comments_author_id_fkey(username)
       `)
       .maybeSingle();
 
-    if (error || !comment) {
+    if (error) {
       console.error('Error updating comment:', error);
       return null;
     }
 
     return {
-      id: comment.id,
-      author: comment.author.username,
-      content: comment.content,
-      createdAt: comment.created_at,
-      updatedAt: comment.updated_at
+      id: updatedComment.id,
+      author: updatedComment.author.username,
+      content: updatedComment.content,
+      createdAt: updatedComment.created_at,
+      updatedAt: updatedComment.updated_at
     };
   } catch (error) {
-    console.error('Error in modifyComment:', error);
+    console.error('Error in updateComment:', error);
     return null;
   }
 };
 
-export const removeComment = async (postId: string, commentId: string): Promise<{ success: boolean }> => {
+export const removeComment = async (commentId: string, username: string): Promise<{ success: boolean }> => {
   try {
+    // Get user ID
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user) {
+      return { success: false };
+    }
+
     const { error } = await supabase
       .from('comments')
       .delete()
       .eq('id', commentId)
-      .eq('post_id', postId);
+      .eq('author_id', user.id);
 
     if (error) {
       console.error('Error deleting comment:', error);
@@ -526,6 +626,69 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
   }
 };
 
+export const togglePinPost = async (postId: string, username: string): Promise<Post | null> => {
+  try {
+    // Get current post to check if it's pinned
+    const { data: currentPost } = await supabase
+      .from('posts')
+      .select('pinned, author_id')
+      .eq('id', postId)
+      .maybeSingle();
+
+    if (!currentPost) {
+      throw new Error('Post not found');
+    }
+
+    // Verify the user is the author
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!user || currentPost.author_id !== user.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const newPinnedState = !currentPost.pinned;
+
+    if (newPinnedState) {
+      // If pinning, first unpin all other posts by this author
+      await supabase
+        .from('posts')
+        .update({ pinned: false })
+        .eq('author_id', user.id)
+        .neq('id', postId);
+    }
+
+    // Update the post's pinned status
+    const { data: updatedPost, error } = await supabase
+      .from('posts')
+      .update({ pinned: newPinnedState })
+      .eq('id', postId)
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error toggling pin:', error);
+      return null;
+    }
+
+    return transformPostFromDB(updatedPost);
+  } catch (error) {
+    console.error('Error in togglePinPost:', error);
+    return null;
+  }
+};
+
 // --- Utility Functions ---
 
 // Transform database post to application format
@@ -550,6 +713,7 @@ const transformPostFromDB = (dbPost: any): Post => {
     updatedAt: dbPost.updated_at,
     upvotes,
     downvotes,
-    comments
+    comments,
+    pinned: dbPost.pinned
   };
 };

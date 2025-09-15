@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Post, User } from '../types';
 import * as authService from '../services/authService';
 import * as postsService from '../services/postsService';
+import { togglePinPost } from '../services/api';
 import { useUser } from '../context/UserContext';
 import { useToast } from '../context/ToastContext';
 import { usePostsContext } from '../context/PostsContext';
@@ -17,6 +18,10 @@ const UserProfile: React.FC = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
+    const [pinnedPosts, setPinnedPosts] = useState<Post[]>([]);
+    const [unpinnedPosts, setUnpinnedPosts] = useState<Post[]>([]);
+    const [totalUnpinnedPosts, setTotalUnpinnedPosts] = useState(0);
+    const [totalPosts, setTotalPosts] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -26,7 +31,28 @@ const UserProfile: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
+    const [pinningPostId, setPinningPostId] = useState<string | null>(null);
 
+    const handlePinPost = async (postId: string) => {
+        if (!currentUser) return;
+        setPinningPostId(postId);
+        try {
+            const updatedPost = await togglePinPost(postId, currentUser.username);
+            if (updatedPost) {
+                const updatedPosts = posts.map(post => post.id === postId ? updatedPost : post);
+                setPosts(updatedPosts);
+                setPinnedPosts(updatedPosts.filter(p => p.pinned));
+                setUnpinnedPosts(updatedPosts.filter(p => !p.pinned));
+                showToast(updatedPost.pinned ? 'Post pinned successfully' : 'Post unpinned successfully', 'success');
+            } else {
+                showToast('Failed to toggle pin', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to toggle pin', 'error');
+        } finally {
+            setPinningPostId(null);
+        }
+    };
 
     // Calculate total upvotes and comments from posts
     const totalUpvotes = posts.reduce((acc, post) => acc + post.upvotes.length, 0);
@@ -70,14 +96,20 @@ const UserProfile: React.FC = () => {
             if (!username) return;
             setIsLoading(true);
             try {
-                const [userData, userPosts] = await Promise.all([
+                const [userData, allPostsData] = await Promise.all([
                     authService.getProfile(username),
                     postsService.getUserPosts(username)
                 ]);
-                
-                if (userData) {
+
+                if (userData && allPostsData) {
                     setUser(userData);
-                    setPosts(userPosts);
+                    setPosts(allPostsData); // All posts for calculations
+                    const pinned = allPostsData.filter(post => post.pinned);
+                    const unpinned = allPostsData.filter(post => !post.pinned);
+                    setPinnedPosts(pinned);
+                    setUnpinnedPosts(unpinned);
+                    setTotalUnpinnedPosts(unpinned.length);
+                    setTotalPosts(allPostsData.length);
                 }
             } catch (error) {
                 console.error("Failed to fetch user profile", error);
@@ -96,7 +128,12 @@ const UserProfile: React.FC = () => {
     const handleDeletePost = async (postId: string) => {
         try {
             await deletePost(postId);
-            setPosts(posts.filter(post => post.id !== postId));
+            const updatedPosts = posts.filter(post => post.id !== postId);
+            setPosts(updatedPosts);
+            setPinnedPosts(updatedPosts.filter(p => p.pinned));
+            setUnpinnedPosts(updatedPosts.filter(p => !p.pinned));
+            setTotalUnpinnedPosts(updatedPosts.filter(p => !p.pinned).length);
+            setTotalPosts(updatedPosts.length);
             setShowDeleteModal(false);
             setPostToDelete(null);
         } catch (error) {
@@ -155,13 +192,27 @@ const UserProfile: React.FC = () => {
     return text.substring(0, maxLength) + '...';
   };
 
-    const filteredPosts = posts.filter(post =>
+    // Use the new state variables for pinned and unpinned posts
+    // Filter unpinned posts based on search query
+    const filteredUnpinnedPosts = unpinnedPosts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
-    const paginatedPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+    // Pagination only applies to unpinned posts excluding pinned posts
+    const unpinnedPostsExcludingPinned = unpinnedPosts.filter(post => !post.pinned);
+    const filteredUnpinnedPostsExcludingPinned = unpinnedPostsExcludingPinned
+        .filter(post =>
+            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Sort by createdAt descending
+    const totalPages = Math.ceil(filteredUnpinnedPostsExcludingPinned.length / postsPerPage);
+    const paginatedPosts = filteredUnpinnedPostsExcludingPinned
+        .slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+
+    // Combine pinned posts (always shown) with paginated unpinned posts excluding pinned posts
+    const allDisplayedPosts = [...pinnedPosts, ...paginatedPosts];
 
     return (
         <div className="space-y-8">
@@ -184,7 +235,7 @@ const UserProfile: React.FC = () => {
                         <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-start gap-3 sm:gap-4 text-sm text-slate-500 dark:text-slate-400">
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="pencil-square" className="h-4 w-4" />
-                                {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                                {totalPosts} {totalPosts === 1 ? 'post' : 'posts'}
                             </span>
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="arrow-up" className="h-4 w-4" />
@@ -226,10 +277,10 @@ const UserProfile: React.FC = () => {
             {/* Posts Section */}
             <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                        Posts by {user.username} ({posts.length})
-                    </h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                    Posts by {user.username} ({totalPosts})
+                </h2>
                     {isOwnProfile && (
                         <Link
                             to="/new"
@@ -261,108 +312,260 @@ const UserProfile: React.FC = () => {
                     </div>
                 </div>
                 
-                {filteredPosts.length > 0 ? (
+                {allDisplayedPosts.length > 0 ? (
                     <>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                                <thead className="bg-slate-50 dark:bg-slate-700">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                            Title
-                                        </th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                            Engagement
-                                        </th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                            Last Updated
-                                        </th>
-                                        <th scope="col" className="relative px-6 py-3">
-                                            <span className="sr-only">Actions</span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                    {paginatedPosts.map(post => (
-                                        <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <Link
-                                                        to={`/post/${post.id}`}
-                                                        className="font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                                                    >
-                                                       {truncateText(post.title, 50)}
-                                                    </Link>
-                                                    <div
-                                                        className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'
-                                                        }}
-                                                    />
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-4 text-sm">
-                                                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                                        <Icon name="arrow-up" className="h-4 w-4" />
-                                                        {post.upvotes.length}
-                                                    </span>
-                                                    <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                                                        <Icon name="arrow-down" className="h-4 w-4" />
-                                                        {post.downvotes.length}
-                                                    </span>
-                                                    <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                                                        <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
-                                                        {post.comments.length}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                                {new Date(post.updatedAt).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric'
-                                                })}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                <div className="flex items-center gap-2 justify-end">
-                                                    <Link
-                                                        to={`/post/${post.id}`}
-                                                        className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
-                                                        title="View Post"
-                                                    >
-                                                        <Icon name="eye" className="h-4 w-4" />
-                                                        View
-                                                    </Link>
-                                                    {isOwnProfile && (
-                                                        <>
-                                                            <Link
-                                                                to={`/edit/${post.id}`}
-                                                                className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
-                                                                title="Edit Post"
-                                                            >
-                                                                <Icon name="pencil-square" className="h-4 w-4" />
-                                                                Edit
-                                                            </Link>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setPostToDelete(post.id);
-                                                                    setShowDeleteModal(true);
+                        {/* Pinned Posts Section */}
+                        {pinnedPosts.length > 0 && (
+                            <div className="border-b border-slate-200 dark:border-slate-700">
+                                <div className="px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500">
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Icon name="pin" className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        Pinned Posts ({pinnedPosts.length})
+                                    </h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                        Important posts that {user.username} has chosen to highlight
+                                    </p>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                        <thead className="bg-slate-50 dark:bg-slate-700">
+                                            <tr>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                    Title
+                                                </th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                    Engagement
+                                                </th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                    Created at
+                                                </th>
+                                                <th scope="col" className="relative px-6 py-3">
+                                                    <span className="sr-only">Actions</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                            {pinnedPosts.map(post => (
+                                                <tr key={post.id} className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors bg-blue-25/30 dark:bg-blue-900/5 border-l-4 border-blue-200 dark:border-blue-700">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon name="pin" className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                                                <Link
+                                                                    to={`/post/${post.id}`}
+                                                                    className="font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                                                >
+                                                                   {truncateText(post.title, 50)}
+                                                                </Link>
+                                                            </div>
+                                                            <div
+                                                                className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none ml-6"
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'
                                                                 }}
-                                                                className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-                                                                title="Delete Post"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center gap-4 text-sm">
+                                                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                                <Icon name="arrow-up" className="h-4 w-4" />
+                                                                {post.upvotes.length}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                                                <Icon name="arrow-down" className="h-4 w-4" />
+                                                                {post.downvotes.length}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                                                                <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
+                                                                {post.comments.length}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                                                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric'
+                                                        })}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <Link
+                                                                to={`/post/${post.id}`}
+                                                                className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
+                                                                title="View Post"
                                                             >
-                                                                <Icon name="trash" className="h-4 w-4" />
-                                                                Delete
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                                                <Icon name="eye" className="h-4 w-4" />
+                                                                View
+                                                            </Link>
+                                                            {isOwnProfile && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handlePinPost(post.id)}
+                                                                        disabled={pinningPostId === post.id}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                                                        title="Unpin Post"
+                                                                    >
+                                                                        <Icon name="paper-clip" className="h-4 w-4" />
+                                                                        Unpin
+                                                                    </button>
+                                                                    <Link
+                                                                        to={`/edit/${post.id}`}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                                                                        title="Edit Post"
+                                                                    >
+                                                                        <Icon name="pencil-square" className="h-4 w-4" />
+                                                                        Edit
+                                                                    </Link>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPostToDelete(post.id);
+                                                                            setShowDeleteModal(true);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                                                                        title="Delete Post"
+                                                                    >
+                                                                        <Icon name="trash" className="h-4 w-4" />
+                                                                        Delete
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Regular Posts Section */}
+                        {filteredUnpinnedPosts.length > 0 && (
+                            <div>
+                                {pinnedPosts.length > 0 && (
+                                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+                                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                            <Icon name="pencil-square" className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                                            Recent Posts ({filteredUnpinnedPosts.length})
+                                        </h3>
+                                       
+                                    </div>
+                                )}
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                        {(pinnedPosts.length === 0) && (
+                                            <thead className="bg-slate-50 dark:bg-slate-700">
+                                                <tr>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                        Title
+                                                    </th>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                        Engagement
+                                                    </th>
+                                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                        Created at
+                                                    </th>
+                                                    <th scope="col" className="relative px-6 py-3">
+                                                        <span className="sr-only">Actions</span>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                        )}
+                                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                            {paginatedPosts.map(post => (
+                                                <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex flex-col">
+                                                            <Link
+                                                                to={`/post/${post.id}`}
+                                                                className="font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                                            >
+                                                               {truncateText(post.title, 50)}
+                                                            </Link>
+                                                            <div
+                                                                className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none"
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: post.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center gap-4 text-sm">
+                                                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                                <Icon name="arrow-up" className="h-4 w-4" />
+                                                                {post.upvotes.length}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                                                <Icon name="arrow-down" className="h-4 w-4" />
+                                                                {post.downvotes.length}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                                                                <Icon name="chat-bubble-left-ellipsis" className="h-4 w-4" />
+                                                                {post.comments.length}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                                                        {new Date(post.createdAt).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric'
+                                                        })}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <Link
+                                                                to={`/post/${post.id}`}
+                                                                className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
+                                                                title="View Post"
+                                                            >
+                                                                <Icon name="eye" className="h-4 w-4" />
+                                                                View
+                                                            </Link>
+                                                            {isOwnProfile && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handlePinPost(post.id)}
+                                                                        disabled={pinningPostId === post.id}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                                                        title="Pin Post"
+                                                                    >
+                                                                        <Icon name="paper-clip" className="h-4 w-4" />
+                                                                        Pin
+                                                                    </button>
+                                                                    <Link
+                                                                        to={`/edit/${post.id}`}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                                                                        title="Edit Post"
+                                                                    >
+                                                                        <Icon name="pencil-square" className="h-4 w-4" />
+                                                                        Edit
+                                                                    </Link>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPostToDelete(post.id);
+                                                                            setShowDeleteModal(true);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                                                                        title="Delete Post"
+                                                                    >
+                                                                        <Icon name="trash" className="h-4 w-4" />
+                                                                        Delete
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Mobile Pagination */}
                         {totalPages > 1 && (
@@ -392,7 +595,7 @@ const UserProfile: React.FC = () => {
                                 {/* Desktop Pagination */}
                                 <div className="hidden sm:flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700">
                                     <div className="text-sm text-slate-500 dark:text-slate-400">
-                                        Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, filteredPosts.length)} of {filteredPosts.length} posts
+                                        Showing {((currentPage - 1) * postsPerPage) + 1} to {Math.min(currentPage * postsPerPage, allDisplayedPosts.length)} of {allDisplayedPosts.length} posts
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button

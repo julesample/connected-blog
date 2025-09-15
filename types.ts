@@ -1,4 +1,3 @@
-
 export interface Comment {
   id: string;
   author: string;
@@ -17,6 +16,7 @@ export interface Post {
   upvotes: string[]; // Array of usernames who upvoted
   downvotes: string[]; // Array of usernames who downvoted
   comments: Comment[];
+  pinned?: boolean; // Optional pinned property for posts
 }
 
 export interface User {

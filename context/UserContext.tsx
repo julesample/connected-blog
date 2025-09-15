@@ -105,15 +105,25 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [showToast]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
+      // Clear local session storage first
       sessionStorage.removeItem(USER_SESSION_KEY);
-      // Sign out from Supabase as well
-      supabase.auth.signOut();
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Supabase sign out error:", error);
+        showToast('There was an issue signing out. Please try again.', 'error');
+        return;
+      }
+
+      // Clear the current user state
       setCurrentUser(null);
       showToast('You have been logged out.', 'info');
     } catch (error) {
       console.error("Failed to remove user session", error);
+      showToast('An error occurred during logout.', 'error');
     }
   }, [showToast]);
 
