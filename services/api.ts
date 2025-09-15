@@ -51,7 +51,8 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
     return {
       username: user.username,
       email: user.email,
-      bio: user.bio
+      bio: user.bio,
+      is_private: user.is_private
     };
   } catch (error) {
     console.error('Error in getUserByEmail:', error);
@@ -72,7 +73,8 @@ export const getUserByUsername = async (username: string): Promise<User | null> 
     return {
       username: user.username,
       email: user.email,
-      bio: user.bio
+      bio: user.bio,
+      is_private: user.is_private
     };
   } catch (error) {
     console.error('Error in getUserByUsername:', error);
@@ -100,6 +102,7 @@ export const updateUser = async (
     const updateData: any = {};
     if (data.bio !== undefined) updateData.bio = data.bio;
     if (data.email !== undefined) updateData.email = data.email;
+    if (data.is_private !== undefined) updateData.is_private = data.is_private;
 
     const { error } = await supabase
       .from('users')
@@ -128,7 +131,7 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
       .from('posts')
       .select(`
         *,
-        author:users!posts_author_id_fkey(username),
+        author:users!posts_author_id_fkey(username, is_private),
         comments(
           *,
           author:users!comments_author_id_fkey(username)
@@ -142,7 +145,8 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
       return [];
     }
 
-    return posts.map(transformPostFromDB);
+    // Filter out posts from private users
+    return posts.filter(post => !post.author.is_private).map(transformPostFromDB);
   } catch (error) {
     console.error('Error in fetchAllPosts:', error);
     return [];
@@ -307,7 +311,7 @@ export const fetchPostById = async (postId: string): Promise<Post | null> => {
       .from('posts')
       .select(`
         *,
-        author:users!posts_author_id_fkey(username),
+        author:users!posts_author_id_fkey(username, is_private),
         comments(
           *,
           author:users!comments_author_id_fkey(username)
@@ -319,6 +323,11 @@ export const fetchPostById = async (postId: string): Promise<Post | null> => {
 
     if (error || !post) {
       console.error('Error fetching post:', error);
+      return null;
+    }
+
+    // Check if author is private
+    if (post.author.is_private) {
       return null;
     }
 

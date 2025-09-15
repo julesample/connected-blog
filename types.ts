@@ -23,6 +23,7 @@ export interface User {
   username: string;
   email: string;
   bio?: string;
+  is_private?: boolean;
 }
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';

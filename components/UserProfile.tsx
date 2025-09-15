@@ -23,6 +23,7 @@ const UserProfile: React.FC = () => {
     const [totalUnpinnedPosts, setTotalUnpinnedPosts] = useState(0);
     const [totalPosts, setTotalPosts] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPrivate, setIsPrivate] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [postToDelete, setPostToDelete] = useState<string | null>(null);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
@@ -103,6 +104,7 @@ const UserProfile: React.FC = () => {
 
                 if (userData && allPostsData) {
                     setUser(userData);
+                    setIsPrivate(userData.is_private || false);
                     setPosts(allPostsData); // All posts for calculations
                     const pinned = allPostsData.filter(post => post.pinned);
                     const unpinned = allPostsData.filter(post => !post.pinned);
@@ -224,14 +226,14 @@ const UserProfile: React.FC = () => {
                     </div>
                     <div className="flex-1 text-center sm:text-left">
                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.username}</h1>
-                        <p className="mt-2 text-slate-600 dark:text-slate-400">
-                            <div 
+                        <div className="mt-2 text-slate-600 dark:text-slate-400">
+                            <div
                                 className="prose prose-sm dark:prose-invert max-w-none"
-                                dangerouslySetInnerHTML={{ 
-                                    __html: user.bio || 'This user has not set a bio yet.' 
+                                dangerouslySetInnerHTML={{
+                                    __html: user.bio || 'This user has not set a bio yet.'
                                 }}
                             />
-                        </p>
+                        </div>
                         <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-start gap-3 sm:gap-4 text-sm text-slate-500 dark:text-slate-400">
                             <span className="flex items-center gap-1 justify-center sm:justify-start">
                                 <Icon name="pencil-square" className="h-4 w-4" />
@@ -275,22 +277,35 @@ const UserProfile: React.FC = () => {
             </div>
 
             {/* Posts Section */}
-            <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                    Posts by {user.username} ({totalPosts})
-                </h2>
-                    {isOwnProfile && (
-                        <Link
-                            to="/new"
-                            className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 transition-colors"
-                        >
-                            <Icon name="plus" className="h-4 w-4" />
-                            New Post
-                        </Link>
-                    )}
+            {isPrivate && !isOwnProfile ? (
+                <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden">
+                    <div className="p-6 sm:p-12 text-center">
+                        <Icon name="lock-closed" className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-slate-400 mb-4" />
+                        <h3 className="text-lg sm:text-xl font-medium text-slate-900 dark:text-white mb-2">
+                            This profile is private
+                        </h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
+                            {user.username} has chosen to keep their posts private.
+                        </p>
+                    </div>
                 </div>
+            ) : (
+                <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Icon name="pencil-square" className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                            Posts by {user.username} ({totalPosts})
+                        </h2>
+                        {isOwnProfile && (
+                            <Link
+                                to="/new"
+                                className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 transition-colors"
+                            >
+                                <Icon name="plus" className="h-4 w-4" />
+                                New Post
+                            </Link>
+                        )}
+                    </div>
 
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
                     <div className="flex-1">
@@ -642,7 +657,8 @@ const UserProfile: React.FC = () => {
                         )}
                     </div>
                 )}
-            </div>
+                </div>
+            )}
 
             {/* Delete Post Modal */}
             {showDeleteModal && (

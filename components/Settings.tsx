@@ -12,9 +12,11 @@ const Settings: React.FC = () => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    
+    const [isPrivate, setIsPrivate] = useState(currentUser?.is_private || false);
+
     const [isBioLoading, setIsBioLoading] = useState(false);
     const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+    const [isPrivacyLoading, setIsPrivacyLoading] = useState(false);
 
     const handleBioSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,7 +35,7 @@ const Settings: React.FC = () => {
             showToast('All password fields are required.', 'error');
             return;
         }
-        
+
         setIsPasswordLoading(true);
         const success = await updateUserProfile({ currentPassword, newPassword });
         if(success) {
@@ -42,6 +44,16 @@ const Settings: React.FC = () => {
             setConfirmPassword('');
         }
         setIsPasswordLoading(false);
+    };
+
+    const handlePrivacySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsPrivacyLoading(true);
+        const success = await updateUserProfile({ is_private: isPrivate });
+        if (success) {
+            showToast(`Account is now ${isPrivate ? 'private' : 'public'}`, 'success');
+        }
+        setIsPrivacyLoading(false);
     };
 
     if (!currentUser) {
@@ -161,6 +173,51 @@ const Settings: React.FC = () => {
                         >
                             <Icon name="pencil-square" className="h-5 w-5" />
                             {isPasswordLoading ? 'Saving...' : 'Change Password'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* Privacy Settings Section */}
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg">
+                <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Privacy Settings</h2>
+                <form onSubmit={handlePrivacySubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium leading-6 text-slate-900 dark:text-slate-100">
+                            Account Visibility
+                        </label>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                            Control who can see your posts. Private accounts hide posts from the public explore feed.
+                        </p>
+                        <div className="mt-4">
+                            <div className="flex items-center">
+                                <input
+                                    id="isPrivate"
+                                    type="checkbox"
+                                    checked={isPrivate}
+                                    onChange={(e) => setIsPrivate(e.target.checked)}
+                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+                                />
+                                <label htmlFor="isPrivate" className="ml-3 block text-sm font-medium text-slate-900 dark:text-slate-100">
+                                    Make account private
+                                </label>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                {isPrivate
+                                    ? "Your posts will be hidden from the public explore feed and can only be viewed by you."
+                                    : "Your posts will be visible to everyone in the public explore feed."
+                                }
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={isPrivacyLoading}
+                            className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 disabled:opacity-50"
+                        >
+                            <Icon name="shield-check" className="h-5 w-5" />
+                            {isPrivacyLoading ? 'Saving...' : 'Save Privacy Settings'}
                         </button>
                     </div>
                 </form>

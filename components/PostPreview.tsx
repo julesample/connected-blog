@@ -239,8 +239,8 @@ const PostPreview: React.FC = () => {
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
         >
-          <Icon name="arrow-turn-up-left" className="h-5 w-5" />
-          Back to recent opened
+          <Icon name="arrow-left" className="h-5 w-5" />
+          Back 
         </button>
       </div>
 
