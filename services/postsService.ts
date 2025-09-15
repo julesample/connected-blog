@@ -17,8 +17,8 @@ export const getUserUnpinnedPostsPaginated = (username: string, page: number, li
   return api.fetchUserUnpinnedPostsPaginated(username, page, limit);
 };
 
-export const getPostById = (id: string): Promise<Post | null> => {
-    return api.fetchPostById(id);
+export const getPostById = (id: string, currentUsername?: string): Promise<Post | null> => {
+    return api.fetchPostById(id, currentUsername);
 };
 
 export const createPost = (title: string, content: string, username: string): Promise<Post | null> => {

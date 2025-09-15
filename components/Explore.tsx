@@ -28,7 +28,7 @@ const VoteControl: React.FC<{ post: Post }> = ({ post }) => {
 
 
 const Explore: React.FC = () => {
-  const { allPosts, isLoading } = usePostsContext();
+  const { allPosts, isLoading, refreshPosts } = usePostsContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'lowest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +42,11 @@ const Explore: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy]);
+
+  // Auto-refresh posts when component mounts
+  useEffect(() => {
+    refreshPosts();
+  }, [refreshPosts]);
 
   const getVoteScore = (post: Post) => {
     return post.upvotes.length - post.downvotes.length;
@@ -70,13 +75,10 @@ const Explore: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center gap-4 flex-wrap">
-        <div>
+        <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Explore All Content
+            Explore Public Posts
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Total Posts: <span className="font-semibold text-primary-600 dark:text-primary-400">{allPosts.length}</span>
-          </p>
         </div>
         <Link
           to="/new"

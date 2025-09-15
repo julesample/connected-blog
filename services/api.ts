@@ -305,7 +305,7 @@ export const fetchUserTotalPostsCount = async (username: string): Promise<number
   }
 };
 
-export const fetchPostById = async (postId: string): Promise<Post | null> => {
+export const fetchPostById = async (postId: string, currentUsername?: string): Promise<Post | null> => {
   try {
     const { data: post, error } = await supabase
       .from('posts')
@@ -326,8 +326,8 @@ export const fetchPostById = async (postId: string): Promise<Post | null> => {
       return null;
     }
 
-    // Check if author is private
-    if (post.author.is_private) {
+    // Check if author is private and current user is not the author
+    if (post.author.is_private && post.author.username !== currentUsername) {
       return null;
     }
 
@@ -628,7 +628,7 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
     }
 
     // Return updated post
-    return await fetchPostById(postId);
+    return await fetchPostById(postId, username);
   } catch (error) {
     console.error('Error in manageVote:', error);
     return null;
