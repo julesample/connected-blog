@@ -154,6 +154,8 @@ const UserProfile: React.FC = () => {
             const success = await deleteUserAccount(deletePassword);
             if (success) {
                 navigate('/');
+            } else {
+                showToast('Incorrect password or failed to delete account.', 'error');
             }
         } catch (error) {
             showToast('Failed to delete account', 'error');
