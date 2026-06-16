@@ -127,17 +127,16 @@ export const updateUser = async (
 
 export const fetchAllPosts = async (): Promise<Post[]> => {
   try {
-    // Fetch only essential post data for the explore list (no comments initially)
+    // Fetch all posts ordered by newest first
     const { data: posts, error } = await supabase
       .from('posts')
       .select(`
-        id,
-        title,
-        content,
-        created_at,
-        updated_at,
-        pinned,
+        *,
         author:users!posts_author_id_fkey(username, is_private),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
         votes(vote_type, user:users!votes_user_id_fkey(username))
       `)
       .order('created_at', { ascending: false });
@@ -147,21 +146,8 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
       return [];
     }
 
-    // Filter out posts from private users and transform to Post format
-    return posts
-      .filter(post => !post.author.is_private)
-      .map(post => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        author: post.author.username,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-        pinned: post.pinned,
-        comments: [],
-        upvotes: post.votes?.filter((v: any) => v.vote_type === 'upvote').map((v: any) => v.user.username) || [],
-        downvotes: post.votes?.filter((v: any) => v.vote_type === 'downvote').map((v: any) => v.user.username) || []
-      }));
+    // Filter out posts from private users
+    return posts.filter(post => !post.author.is_private).map(transformPostFromDB);
   } catch (error) {
     console.error('Error in fetchAllPosts:', error);
     return [];
