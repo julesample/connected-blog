@@ -26,18 +26,27 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const isFetchingRef = useRef<boolean>(false);
   const lastFetchTimeRef = useRef<number>(0);
-  const cacheTimeout = 10000; // 10 second cache
+  const cacheTimeout = 30000; // 30 second cache
 
   const fetchPosts = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
-    // Don't fetch if we fetched less than 10 seconds ago and not forced
-    if (!forceRefresh && now - lastFetchTimeRef.current < cacheTimeout) {
+    
+    // Prevent concurrent requests
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    // Don't fetch if we fetched less than 30 seconds ago and not forced
+    if (!forceRefresh && now - lastFetchTimeRef.current < cacheTimeout && (posts.length > 0 || allPosts.length > 0)) {
       return;
     }
     
+    isFetchingRef.current = true;
     setIsLoading(true);
+    
     try {
       if (currentUser && currentUser.username) {
         const [userPosts, allPostsData] = await Promise.all([
@@ -52,21 +61,27 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
          setPosts([]);
       }
       lastFetchTimeRef.current = now;
+    } catch (error) {
+      console.error('Error fetching posts:', error);
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, posts.length, allPosts.length]);
 
+  // Initial fetch on mount
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    if (!isFetchingRef.current && allPosts.length === 0) {
+      fetchPosts(false);
+    }
+  }, []);
 
-  // Refresh posts when user privacy changes to public
+  // Fetch when current user changes
   useEffect(() => {
-    if (currentUser && currentUser.is_private === false) {
+    if (currentUser) {
       fetchPosts(true);
     }
-  }, [currentUser?.is_private, fetchPosts]);
+  }, [currentUser?.username]);
   
   const refreshPosts = useCallback(() => {
     fetchPosts(true); // Force refresh

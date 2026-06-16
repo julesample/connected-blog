@@ -105,22 +105,29 @@ const UserProfile: React.FC = () => {
                 if (userData && allPostsData) {
                     setUser(userData);
                     setIsPrivate(userData.is_private || false);
-                    setPosts(allPostsData); // All posts for calculations
+                    setPosts(allPostsData);
                     const pinned = allPostsData.filter(post => post.pinned);
                     const unpinned = allPostsData.filter(post => !post.pinned);
                     setPinnedPosts(pinned);
                     setUnpinnedPosts(unpinned);
                     setTotalUnpinnedPosts(unpinned.length);
                     setTotalPosts(allPostsData.length);
+                    setCurrentPage(1);
                 }
             } catch (error) {
                 console.error("Failed to fetch user profile", error);
+                showToast('Failed to load profile', 'error');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchData();
+        // Only fetch when username changes
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 100); // Small debounce to prevent rapid successive calls
+
+        return () => clearTimeout(timer);
     }, [username]);
 
     useEffect(() => {
