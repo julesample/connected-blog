@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { Post } from '../types';
 import * as postsService from '../services/postsService';
 import { useUser } from './UserContext';
@@ -26,38 +26,65 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const isFetchingRef = useRef<boolean>(false);
+  const lastFetchTimeRef = useRef<number>(0);
+  const cacheTimeout = 30000; // 30 second cache
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    
+    // Prevent concurrent requests
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    // Don't fetch if we fetched less than 30 seconds ago and not forced
+    if (!forceRefresh && now - lastFetchTimeRef.current < cacheTimeout && (posts.length > 0 || allPosts.length > 0)) {
+      return;
+    }
+    
+    isFetchingRef.current = true;
     setIsLoading(true);
-    if (currentUser && currentUser.username) {
-      const [userPosts, allPostsData] = await Promise.all([
-        postsService.getUserPosts(currentUser.username),
-        postsService.getAllPosts()
-      ]);
-      setPosts(userPosts);
-      setAllPosts(allPostsData);
-    } else {
-       const allPostsData = await postsService.getAllPosts();
-       setAllPosts(allPostsData);
-       setPosts([]);
+    
+    try {
+      if (currentUser && currentUser.username) {
+        const [userPosts, allPostsData] = await Promise.all([
+          postsService.getUserPosts(currentUser.username),
+          postsService.getAllPosts()
+        ]);
+        setPosts(userPosts);
+        setAllPosts(allPostsData);
+      } else {
+         const allPostsData = await postsService.getAllPosts();
+         setAllPosts(allPostsData);
+         setPosts([]);
+      }
+      lastFetchTimeRef.current = now;
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      isFetchingRef.current = false;
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [currentUser]);
+  }, [currentUser, posts.length, allPosts.length]);
 
+  // Initial fetch on mount
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  // Refresh posts when user privacy changes to public
-  useEffect(() => {
-    if (currentUser && currentUser.is_private === false) {
-      fetchPosts();
+    if (!isFetchingRef.current && allPosts.length === 0) {
+      fetchPosts(false);
     }
-  }, [currentUser?.is_private, fetchPosts]);
+  }, []);
+
+  // Fetch when current user changes
+  useEffect(() => {
+    if (currentUser) {
+      fetchPosts(true);
+    }
+  }, [currentUser?.username]);
   
   const refreshPosts = useCallback(() => {
-    fetchPosts();
+    fetchPosts(true); // Force refresh
   }, [fetchPosts]);
 
   const getPost = async (id: string): Promise<Post | null> => {

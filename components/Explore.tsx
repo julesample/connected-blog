@@ -26,7 +26,6 @@ const VoteControl: React.FC<{ post: Post }> = ({ post }) => {
   );
 };
 
-
 const Explore: React.FC = () => {
   const { allPosts, isLoading, refreshPosts } = usePostsContext();
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +51,7 @@ const Explore: React.FC = () => {
     return post.upvotes.length - post.downvotes.length;
   };
 
+  // Simple filtering and sorting without expensive memoization
   const filteredAndSortedPosts = allPosts
     .filter(post =>
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -1,6 +1,22 @@
 import { User, Post, Comment } from '../types';
 import { supabase } from './supabase';
 
+// Request deduplication cache
+const requestCache = new Map<string, Promise<any>>();
+
+const getCachedRequest = <T>(key: string, fetcher: () => Promise<T>): Promise<T> => {
+  if (requestCache.has(key)) {
+    return requestCache.get(key)!;
+  }
+  
+  const promise = fetcher().finally(() => {
+    requestCache.delete(key);
+  });
+  
+  requestCache.set(key, promise);
+  return promise;
+};
+
 // --- User API ---
 
 export const createUser = async (username: string, email: string, authId: string): Promise<{ success: boolean; message: string }> => {
@@ -126,70 +142,75 @@ export const updateUser = async (
 // --- Post API ---
 
 export const fetchAllPosts = async (): Promise<Post[]> => {
-  try {
-    const { data: posts, error } = await supabase
-      .from('posts')
-      .select(`
-        *,
-        author:users!posts_author_id_fkey(username, is_private),
-        comments(
+  return getCachedRequest('fetchAllPosts', async () => {
+    try {
+      // Fetch all posts ordered by newest first
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
           *,
-          author:users!comments_author_id_fkey(username)
-        ),
-        votes(vote_type, user:users!votes_user_id_fkey(username))
-      `)
-      .order('created_at', { ascending: false });
+          author:users!posts_author_id_fkey(username, is_private),
+          comments(
+            *,
+            author:users!comments_author_id_fkey(username)
+          ),
+          votes(vote_type, user:users!votes_user_id_fkey(username))
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching posts:', error);
+      if (error) {
+        console.error('Error fetching posts:', error);
+        return [];
+      }
+
+      // Filter out posts from private users
+      return posts.filter(post => !post.author.is_private).map(transformPostFromDB);
+    } catch (error) {
+      console.error('Error in fetchAllPosts:', error);
       return [];
     }
-
-    // Filter out posts from private users
-    return posts.filter(post => !post.author.is_private).map(transformPostFromDB);
-  } catch (error) {
-    console.error('Error in fetchAllPosts:', error);
-    return [];
-  }
+  });
 };
 
 export const fetchUserPosts = async (username: string): Promise<Post[]> => {
-  try {
-    // Get user ID
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
+  return getCachedRequest(`fetchUserPosts_${username}`, async () => {
+    try {
+      // Get user ID
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
 
-    if (!user) {
-      return [];
-    }
+      if (!user) {
+        return [];
+      }
 
-    const { data: posts, error } = await supabase
-      .from('posts')
-      .select(`
-        *,
-        author:users!posts_author_id_fkey(username),
-        comments(
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select(`
           *,
-          author:users!comments_author_id_fkey(username)
-        ),
-        votes(vote_type, user:users!votes_user_id_fkey(username))
-      `)
-      .eq('author_id', user.id)
-      .order('created_at', { ascending: false });
+          author:users!posts_author_id_fkey(username),
+          comments(
+            *,
+            author:users!comments_author_id_fkey(username)
+          ),
+          votes(vote_type, user:users!votes_user_id_fkey(username))
+        `)
+        .eq('author_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching user posts:', error);
+      if (error) {
+        console.error('Error fetching user posts:', error);
+        return [];
+      }
+
+      return posts.map(transformPostFromDB);
+    } catch (error) {
+      console.error('Error in fetchUserPosts:', error);
       return [];
     }
-
-    return posts.map(transformPostFromDB);
-  } catch (error) {
-    console.error('Error in fetchUserPosts:', error);
-    return [];
-  }
+  });
 };
 
 export const fetchUserPinnedPosts = async (username: string): Promise<Post[]> => {
