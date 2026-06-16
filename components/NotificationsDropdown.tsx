@@ -27,10 +27,11 @@ const NotificationsDropdown: React.FC = () => {
       }
     };
 
+    // Initial fetch
     fetchNotifications();
     
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Refresh notifications every 10 seconds (faster for better UX)
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [currentUser]);
 

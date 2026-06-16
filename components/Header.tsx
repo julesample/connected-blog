@@ -133,7 +133,7 @@ const Header: React.FC = () => {
                 >
                   <Icon name="arrow-right-start-on-rectangle" className="h-5 w-5" />
                 </button>
-              </div>
+                </div>
               </>
             )}
 
