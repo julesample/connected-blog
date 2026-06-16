@@ -483,45 +483,61 @@ export const deletePost = async (postId: string, username: string): Promise<{ su
 
 export const addComment = async (postId: string, content: string, username: string): Promise<Comment | null> => {
   try {
-    // Get user ID
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
+  // Get user ID
+  const { data: user } = await supabase
+  .from('users')
+  .select('id')
+  .eq('username', username)
+  .maybeSingle();
+  
+  if (!user) {
+  throw new Error('User not found');
+  }
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+  // Get post author
+  const { data: post } = await supabase
+  .from('posts')
+  .select('author_id')
+  .eq('id', postId)
+  .maybeSingle();
 
-    // Add comment
-    const { data: newComment, error } = await supabase
-      .from('comments')
-      .insert({
-        post_id: postId,
-        author_id: user.id,
-        content
-      })
-      .select(`
-        *,
-        author:users!comments_author_id_fkey(username)
-      `)
-      .maybeSingle();
+  if (!post) {
+  throw new Error('Post not found');
+  }
+  
+  // Add comment
+  const { data: newComment, error } = await supabase
+  .from('comments')
+  .insert({
+  post_id: postId,
+  author_id: user.id,
+  content
+  })
+  .select(`
+  *,
+  author:users!comments_author_id_fkey(username)
+  `)
+  .maybeSingle();
+  
+  if (error) {
+  console.error('Error adding comment:', error);
+  return null;
+  }
 
-    if (error) {
-      console.error('Error adding comment:', error);
-      return null;
-    }
-
-    return {
-      id: newComment.id,
-      author: newComment.author.username,
-      content: newComment.content,
-      createdAt: newComment.created_at,
-      updatedAt: newComment.updated_at
-    };
+  // Create notification for the post author
+  if (user.id !== post.author_id && username !== '') {
+    await createNotification(post.author_id, username, 'comment', postId, newComment.id);
+  }
+  
+  return {
+  id: newComment.id,
+  author: newComment.author.username,
+  content: newComment.content,
+  createdAt: newComment.created_at,
+  updatedAt: newComment.updated_at
+  };
   } catch (error) {
-    console.error('Error in addComment:', error);
+  console.error('Error in addComment:', error);
     return null;
   }
 };
@@ -604,118 +620,219 @@ export const removeComment = async (commentId: string, username: string): Promis
 
 export const manageVote = async (postId: string, username: string, voteType: 'upvote' | 'downvote'): Promise<Post | null> => {
   try {
-    // Get user ID
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
+  // Get user ID
+  const { data: user } = await supabase
+  .from('users')
+  .select('id')
+  .eq('username', username)
+  .maybeSingle();
+  
+  if (!user) {
+  throw new Error('User not found');
+  }
+  
+  // Get post author
+  const { data: post } = await supabase
+  .from('posts')
+  .select('author_id')
+  .eq('id', postId)
+  .maybeSingle();
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+  if (!post) {
+  throw new Error('Post not found');
+  }
+  
+  // Check if user already voted
+  const { data: existingVote } = await supabase
+  .from('votes')
+  .select('*')
+  .eq('post_id', postId)
+  .eq('user_id', user.id)
+  .maybeSingle();
+  
+  if (existingVote) {
+  if (existingVote.vote_type === voteType) {
+  // Remove vote if same type
+  await supabase
+  .from('votes')
+  .delete()
+  .eq('id', existingVote.id);
+  } else {
+  // Update vote type
+  await supabase
+  .from('votes')
+  .update({ vote_type: voteType })
+  .eq('id', existingVote.id);
 
-    // Check if user already voted
-    const { data: existingVote } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('post_id', postId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+  // Only create notification when changing vote type
+  if (user.id !== post.author_id && username !== '') {
+    await createNotification(post.author_id, username, voteType, postId);
+  }
+  }
+  } else {
+  // Create new vote
+  await supabase
+  .from('votes')
+  .insert({
+  post_id: postId,
+  user_id: user.id,
+  vote_type: voteType
+  });
 
-    if (existingVote) {
-      if (existingVote.vote_type === voteType) {
-        // Remove vote if same type
-        await supabase
-          .from('votes')
-          .delete()
-          .eq('id', existingVote.id);
-      } else {
-        // Update vote type
-        await supabase
-          .from('votes')
-          .update({ vote_type: voteType })
-          .eq('id', existingVote.id);
-      }
-    } else {
-      // Create new vote
-      await supabase
-        .from('votes')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          vote_type: voteType
-        });
-    }
-
-    // Return updated post
-    return await fetchPostById(postId, username);
+  // Create notification for the post author
+  if (user.id !== post.author_id && username !== '') {
+    await createNotification(post.author_id, username, voteType, postId);
+  }
+  }
+  
+  // Return updated post
+  return await fetchPostById(postId, username);
   } catch (error) {
-    console.error('Error in manageVote:', error);
-    return null;
+  console.error('Error in manageVote:', error);
+  return null;
   }
 };
 
 export const togglePinPost = async (postId: string, username: string): Promise<Post | null> => {
   try {
-    // Get current post to check if it's pinned
-    const { data: currentPost } = await supabase
+  // Get current post to check if it's pinned
+  const { data: currentPost } = await supabase
+  .from('posts')
+  .select('pinned, author_id')
+  .eq('id', postId)
+  .maybeSingle();
+  
+  if (!currentPost) {
+  throw new Error('Post not found');
+  }
+  
+  // Verify the user is the author
+  const { data: user } = await supabase
+  .from('users')
+  .select('id')
+  .eq('username', username)
+  .maybeSingle();
+  
+  if (!user || currentPost.author_id !== user.id) {
+  throw new Error('Unauthorized');
+  }
+  
+  const newPinnedState = !currentPost.pinned;
+  
+  // If pinning, unpin all other posts from this user
+  if (newPinnedState) {
+    const { error: unpinError } = await supabase
       .from('posts')
-      .select('pinned, author_id')
-      .eq('id', postId)
-      .maybeSingle();
-
-    if (!currentPost) {
-      throw new Error('Post not found');
+      .update({ pinned: false })
+      .eq('author_id', user.id)
+      .neq('id', postId);
+    
+    if (unpinError) {
+      throw new Error('Failed to unpin other posts');
     }
+  }
+  
+  const { data: updatedPost, error } = await supabase
+  .from('posts')
+  .update({ pinned: newPinnedState })
+  .eq('id', postId)
+  .select(`
+    *,
+    author:users!posts_author_id_fkey(username),
+    comments(
+      *,
+      author:users!comments_author_id_fkey(username)
+    ),
+    votes(vote_type, user:users!votes_user_id_fkey(username))
+  `)
+  .maybeSingle();
+  
+  if (error || !updatedPost) {
+  throw new Error('Failed to update post');
+  }
+  
+  return transformPostFromDB(updatedPost);
+  } catch (error) {
+  console.error('Error in togglePinPost:', error);
+  return null;
+  }
+};
 
-    // Verify the user is the author
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (!user || currentPost.author_id !== user.id) {
-      throw new Error('Unauthorized');
-    }
-
-    const newPinnedState = !currentPost.pinned;
-
-    if (newPinnedState) {
-      // If pinning, first unpin all other posts by this author
-      await supabase
-        .from('posts')
-        .update({ pinned: false })
-        .eq('author_id', user.id)
-        .neq('id', postId);
-    }
-
-    // Update the post's pinned status
-    const { data: updatedPost, error } = await supabase
-      .from('posts')
-      .update({ pinned: newPinnedState })
-      .eq('id', postId)
-      .select(`
-        *,
-        author:users!posts_author_id_fkey(username),
-        comments(
-          *,
-          author:users!comments_author_id_fkey(username)
-        ),
-        votes(vote_type, user:users!votes_user_id_fkey(username))
-      `)
-      .maybeSingle();
+// Notification functions
+export const createNotification = async (
+  recipientId: string,
+  actorUsername: string,
+  type: 'upvote' | 'downvote' | 'comment',
+  postId: string,
+  commentId?: string
+): Promise<void> => {
+  try {
+    const { error } = await supabase.from('notifications').insert({
+      recipient_id: recipientId,
+      actor_username: actorUsername,
+      type,
+      post_id: postId,
+      comment_id: commentId || null,
+      read: false,
+    });
 
     if (error) {
-      console.error('Error toggling pin:', error);
-      return null;
+      console.error('Error creating notification:', error);
+    }
+  } catch (error) {
+    console.error('Error in createNotification:', error);
+  }
+};
+
+export const fetchNotifications = async (userId: string): Promise<any[]> => {
+  try {
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
     }
 
-    return transformPostFromDB(updatedPost);
+    return notifications || [];
   } catch (error) {
-    console.error('Error in togglePinPost:', error);
-    return null;
+    console.error('Error in fetchNotifications:', error);
+    return [];
+  }
+};
+
+export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  } catch (error) {
+    console.error('Error in markNotificationAsRead:', error);
+  }
+};
+
+export const markAllNotificationsAsRead = async (userId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('recipient_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  } catch (error) {
+    console.error('Error in markAllNotificationsAsRead:', error);
   }
 };
 

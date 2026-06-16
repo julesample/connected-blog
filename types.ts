@@ -33,3 +33,16 @@ export interface ToastMessage {
   message: string;
   type: ToastType;
 }
+
+export type NotificationType = 'upvote' | 'downvote' | 'comment';
+
+export interface Notification {
+  id: string;
+  recipient_id: string;
+  actor_username: string;
+  type: NotificationType;
+  post_id: string;
+  comment_id?: string;
+  read: boolean;
+  created_at: string;
+}
