@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import Icon from './Icon';
 import { useUser } from '../context/UserContext';
+import NotificationsDropdown from './NotificationsDropdown';
 
 const ThemeToggle: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -97,7 +98,9 @@ const Header: React.FC = () => {
           {/* Right‑hand items */}
           <div className="flex items-center space-x-4">
             {currentUser && (
-              <div className="hidden sm:flex items-center space-x-3">
+              <>
+                <NotificationsDropdown />
+                <div className="hidden sm:flex items-center space-x-3">
                 <NavLink
                   to={`/profile/${currentUser.username}`}
                   className={({ isActive }) =>
@@ -131,6 +134,7 @@ const Header: React.FC = () => {
                   <Icon name="arrow-right-start-on-rectangle" className="h-5 w-5" />
                 </button>
               </div>
+              </>
             )}
 
             {/* Mobile hamburger */}
