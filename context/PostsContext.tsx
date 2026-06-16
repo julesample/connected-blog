@@ -27,8 +27,16 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [posts, setPosts] = useState<Post[]>([]);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const cacheTimeout = 5000; // 5 second cache
 
   const fetchPosts = useCallback(async () => {
+    const now = Date.now();
+    // Don't fetch if we fetched less than 5 seconds ago and have data
+    if (now - lastFetchTime < cacheTimeout && allPosts.length > 0) {
+      return;
+    }
+    
     setIsLoading(true);
     if (currentUser && currentUser.username) {
       const [userPosts, allPostsData] = await Promise.all([
@@ -42,8 +50,9 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
        setAllPosts(allPostsData);
        setPosts([]);
     }
+    setLastFetchTime(now);
     setIsLoading(false);
-  }, [currentUser]);
+  }, [currentUser, lastFetchTime, allPosts.length]);
 
   useEffect(() => {
     fetchPosts();

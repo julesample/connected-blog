@@ -1,30 +1,123 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { usePostsContext } from '../context/PostsContext';
 import { useUser } from '../context/UserContext';
 import Icon from './Icon';
 import { Post } from '../types';
 
-const VoteControl: React.FC<{ post: Post }> = ({ post }) => {
+const VoteControl: React.FC<{ post: Post }> = React.memo(({ post }) => {
   const { vote } = usePostsContext();
   const { currentUser } = useUser();
 
   const isUpvoted = currentUser ? post.upvotes.includes(currentUser.username) : false;
   const isDownvoted = currentUser ? post.downvotes.includes(currentUser.username) : false;
 
+  const handleVote = useCallback((e: React.MouseEvent, voteType: 'upvote' | 'downvote') => {
+    e.preventDefault();
+    e.stopPropagation();
+    vote(post.id, voteType);
+  }, [post.id, vote]);
+
   return (
     <div className="flex items-center gap-1">
-      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); vote(post.id, 'upvote'); }} className={`flex items-center gap-1 p-1 rounded-full text-xs transition-colors ${isUpvoted ? 'text-green-600 dark:text-green-400' : 'text-slate-500 hover:text-green-600'}`}>
+      <button onClick={(e) => handleVote(e, 'upvote')} className={`flex items-center gap-1 p-1 rounded-full text-xs transition-colors ${isUpvoted ? 'text-green-600 dark:text-green-400' : 'text-slate-500 hover:text-green-600'}`}>
         <Icon name="arrow-up" className="h-4 w-4" />
         <span>{post.upvotes.length}</span>
       </button>
-       <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); vote(post.id, 'downvote'); }} className={`flex items-center gap-1 p-1 rounded-full text-xs transition-colors ${isDownvoted ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-red-600'}`}>
+       <button onClick={(e) => handleVote(e, 'downvote')} className={`flex items-center gap-1 p-1 rounded-full text-xs transition-colors ${isDownvoted ? 'text-red-600 dark:text-red-400' : 'text-slate-500 hover:text-red-600'}`}>
         <Icon name="arrow-down" className="h-4 w-4" />
          <span>{post.downvotes.length}</span>
       </button>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.post.id === nextProps.post.id &&
+         prevProps.post.upvotes.length === nextProps.post.upvotes.length &&
+         prevProps.post.downvotes.length === nextProps.post.downvotes.length;
+});
+
+const MobilePostRow: React.FC<{ post: Post; truncateText: (text: string, maxLength: number) => string }> = React.memo(({ post, truncateText }) => (
+  <div className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+    <div className="flex items-start justify-between mb-3">
+      <div className="flex-1 min-w-0">
+        <Link
+          to={`/post/${post.id}`}
+          className="text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 block mb-1"
+        >
+          {truncateText(post.title, 60)}
+        </Link>
+        <Link
+          to={`/profile/${post.author}`}
+          className="text-sm text-slate-500 dark:text-slate-400 hover:underline"
+        >
+          by {post.author}
+        </Link>
+      </div>
+      <div className="ml-3 flex-shrink-0">
+        <VoteControl post={post} />
+      </div>
+    </div>
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-slate-500 dark:text-slate-400">
+        Created: {new Date(post.createdAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })}
+        {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
+          <> | Updated: {new Date(post.updatedAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          })}</>
+        )}
+      </span>
+      <Link
+        to={`/post/${post.id}`}
+        className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
+      >
+        <Icon name="eye" className="h-3 w-3" />
+        View
+      </Link>
+    </div>
+  </div>
+), (prevProps, nextProps) => {
+  return prevProps.post.id === nextProps.post.id &&
+         prevProps.post.upvotes.length === nextProps.post.upvotes.length &&
+         prevProps.post.downvotes.length === nextProps.post.downvotes.length;
+});
+
+const DesktopPostRow: React.FC<{ post: Post; truncateText: (text: string, maxLength: number) => string }> = React.memo(({ post, truncateText }) => (
+  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+    <td className="px-6 py-4 whitespace-nowrap">
+      <Link to={`/post/${post.id}`} title={post.title} className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{truncateText(post.title, 50)}</Link>
+    </td>
+    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+      <Link to={`/profile/${post.author}`} className="hover:underline">{post.author}</Link>
+    </td>
+    <td className="px-6 py-4 whitespace-nowrap">
+      <VoteControl post={post} />
+    </td>
+    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+      <div>
+        <div>Created: {new Date(post.createdAt).toLocaleDateString()}</div>
+        {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
+          <div>Updated: {new Date(post.updatedAt).toLocaleDateString()}</div>
+        )}
+      </div>
+    </td>
+    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <Link to={`/post/${post.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800" title="View Post">
+        <Icon name="eye" className="h-4 w-4" />
+        View
+      </Link>
+    </td>
+  </tr>
+), (prevProps, nextProps) => {
+  return prevProps.post.id === nextProps.post.id &&
+         prevProps.post.upvotes.length === nextProps.post.upvotes.length &&
+         prevProps.post.downvotes.length === nextProps.post.downvotes.length;
+});
 
 
 const Explore: React.FC = () => {
@@ -34,10 +127,10 @@ const Explore: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
 
-  const truncateText = (text: string, maxLength: number) => {
+  const truncateText = useCallback((text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
-  };
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -48,29 +141,37 @@ const Explore: React.FC = () => {
     refreshPosts();
   }, [refreshPosts]);
 
-  const getVoteScore = (post: Post) => {
+  const getVoteScore = useCallback((post: Post) => {
     return post.upvotes.length - post.downvotes.length;
-  };
+  }, []);
 
-  const filteredAndSortedPosts = allPosts
-    .filter(post =>
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'highest':
-          return getVoteScore(b) - getVoteScore(a);
-        case 'lowest':
-          return getVoteScore(a) - getVoteScore(b);
-        case 'newest':
-        default:
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      }
-    });
+  // Memoize filtered and sorted posts to avoid recalculating on every render
+  const filteredAndSortedPosts = useMemo(() => {
+    const lowerQuery = searchQuery.toLowerCase();
+    
+    return allPosts
+      .filter(post =>
+        post.title.toLowerCase().includes(lowerQuery) ||
+        post.author.toLowerCase().includes(lowerQuery)
+      )
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'highest':
+            return getVoteScore(b) - getVoteScore(a);
+          case 'lowest':
+            return getVoteScore(a) - getVoteScore(b);
+          case 'newest':
+          default:
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        }
+      });
+  }, [allPosts, searchQuery, sortBy, getVoteScore]);
 
   const totalPages = Math.ceil(filteredAndSortedPosts.length / postsPerPage);
-  const paginatedPosts = filteredAndSortedPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+  const paginatedPosts = useMemo(
+    () => filteredAndSortedPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage),
+    [filteredAndSortedPosts, currentPage, postsPerPage]
+  );
 
   return (
     <div className="space-y-8">
@@ -205,50 +306,7 @@ const Explore: React.FC = () => {
             {/* Mobile Card View */}
             <div className="block sm:hidden divide-y divide-slate-200 dark:divide-slate-700">
               {paginatedPosts.map((post: Post) => (
-                <div key={post.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/post/${post.id}`}
-                        className="text-base font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 block mb-1"
-                      >
-                        {truncateText(post.title, 60)}
-                      </Link>
-                      <Link
-                        to={`/profile/${post.author}`}
-                        className="text-sm text-slate-500 dark:text-slate-400 hover:underline"
-                      >
-                        by {post.author}
-                      </Link>
-                    </div>
-                    <div className="ml-3 flex-shrink-0">
-                      <VoteControl post={post} />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Created: {new Date(post.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                      {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
-                        <> | Updated: {new Date(post.updatedAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}</>
-                      )}
-                    </span>
-                    <Link
-                      to={`/post/${post.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors"
-                    >
-                      <Icon name="eye" className="h-3 w-3" />
-                      View
-                    </Link>
-                  </div>
-                </div>
+                <MobilePostRow key={post.id} post={post} truncateText={truncateText} />
               ))}
             </div>
 
@@ -268,31 +326,7 @@ const Explore: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {paginatedPosts.map((post: Post) => (
-                    <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link to={`/post/${post.id}`} title={post.title} className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{truncateText(post.title, 50)}</Link>
-                      </td>
-                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                        <Link to={`/profile/${post.author}`} className="hover:underline">{post.author}</Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <VoteControl post={post} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                        <div>
-                          <div>Created: {new Date(post.createdAt).toLocaleDateString()}</div>
-                          {new Date(post.createdAt).getTime() !== new Date(post.updatedAt).getTime() && (
-                            <div>Updated: {new Date(post.updatedAt).toLocaleDateString()}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Link to={`/post/${post.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800" title="View Post">
-                            <Icon name="eye" className="h-4 w-4" />
-                            View
-                          </Link>
-                      </td>
-                    </tr>
+                    <DesktopPostRow key={post.id} post={post} truncateText={truncateText} />
                   ))}
                 </tbody>
               </table>
