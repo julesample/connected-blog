@@ -683,7 +683,10 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
 
   // Create notification for the post author
   if (user.id !== post.author_id && username !== '') {
+    console.log('[v0] Vote: Creating notification for vote, user.id:', user.id, 'post.author_id:', post.author_id);
     await createNotification(post.author_id, username, voteType, postId);
+  } else {
+    console.log('[v0] Vote: NOT creating notification - self vote or empty username. user.id:', user.id, 'post.author_id:', post.author_id);
   }
   }
   
@@ -769,8 +772,7 @@ export const createNotification = async (
   commentId?: string
 ): Promise<void> => {
   try {
-    console.log('[v0] Creating notification - recipientId:', recipientId, 'actor:', actorUsername, 'type:', type);
-    
+    console.log('[v0] API: Creating notification - recipientId:', recipientId, 'actor:', actorUsername, 'type:', type);
     const { data, error } = await supabase.from('notifications').insert({
       recipient_id: recipientId,
       actor_username: actorUsername,
@@ -781,18 +783,18 @@ export const createNotification = async (
     }).select();
 
     if (error) {
-      console.error('[v0] Error creating notification:', error.message, error.code, error.details);
+      console.error('[v0] API: Error creating notification:', error);
     } else {
-      console.log('[v0] Notification created successfully:', data);
+      console.log('[v0] API: Notification created successfully:', data);
     }
   } catch (error) {
-    console.error('[v0] Error in createNotification:', error);
+    console.error('[v0] API: Error in createNotification:', error);
   }
 };
 
 export const fetchNotifications = async (userId: string): Promise<any[]> => {
   try {
-    console.log('[v0] Fetching notifications for userId:', userId);
+    console.log('[v0] API: Fetching notifications for userId:', userId);
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
@@ -801,14 +803,14 @@ export const fetchNotifications = async (userId: string): Promise<any[]> => {
       .limit(50);
 
     if (error) {
-      console.error('[v0] Error fetching notifications:', error.message, error.code, error.details);
+      console.error('[v0] API: Error fetching notifications:', error);
       return [];
     }
 
-    console.log('[v0] Notifications fetched:', notifications?.length || 0, 'items', notifications);
+    console.log('[v0] API: Fetched notifications count:', notifications?.length || 0, 'data:', notifications);
     return notifications || [];
   } catch (error) {
-    console.error('[v0] Error in fetchNotifications:', error);
+    console.error('[v0] API: Error in fetchNotifications:', error);
     return [];
   }
 };
