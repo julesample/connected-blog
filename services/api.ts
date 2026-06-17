@@ -683,10 +683,7 @@ export const manageVote = async (postId: string, username: string, voteType: 'up
 
   // Create notification for the post author
   if (user.id !== post.author_id && username !== '') {
-    console.log('[v0] Vote: Creating notification for vote, user.id:', user.id, 'post.author_id:', post.author_id);
     await createNotification(post.author_id, username, voteType, postId);
-  } else {
-    console.log('[v0] Vote: NOT creating notification - self vote or empty username. user.id:', user.id, 'post.author_id:', post.author_id);
   }
   }
   
@@ -772,23 +769,20 @@ export const createNotification = async (
   commentId?: string
 ): Promise<void> => {
   try {
-    console.log('[v0] API: Creating notification - recipientId:', recipientId, 'actor:', actorUsername, 'type:', type);
-    const { data, error } = await supabase.from('notifications').insert({
+    const { error } = await supabase.from('notifications').insert({
       recipient_id: recipientId,
       actor_username: actorUsername,
       type,
       post_id: postId,
       comment_id: commentId || null,
       read: false,
-    }).select();
+    });
 
     if (error) {
-      console.error('[v0] API: Error creating notification:', error);
-    } else {
-      console.log('[v0] API: Notification created successfully:', data);
+      console.error('Error creating notification:', error);
     }
   } catch (error) {
-    console.error('[v0] API: Error in createNotification:', error);
+    console.error('Error in createNotification:', error);
   }
 };
 
