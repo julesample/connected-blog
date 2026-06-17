@@ -551,15 +551,19 @@ const UserProfile: React.FC = () => {
                                                             </Link>
                                                             {isOwnProfile && (
                                                                 <>
-                                                                    <button
-                                                                        onClick={() => handlePinPost(post.id)}
-                                                                        disabled={pinningPostId === post.id}
-                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                                                                        title="Pin Post"
-                                                                    >
-                                                                        <Icon name="paper-clip" className="h-4 w-4" />
-                                                                        Pin
-                                                                    </button>
+                  <button
+                  onClick={() => handlePinPost(post.id)}
+                  disabled={pinningPostId === post.id || (pinnedPosts.length > 0 && !post.pinned)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    pinnedPosts.length > 0 && !post.pinned
+                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                  title={pinnedPosts.length > 0 && !post.pinned ? "Unpin the current pinned post first" : "Pin Post"}
+                  >
+                  <Icon name="paper-clip" className="h-4 w-4" />
+                  Pin
+                  </button>
                                                                     <Link
                                                                         to={`/edit/${post.id}`}
                                                                         className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"

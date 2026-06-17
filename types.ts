@@ -20,6 +20,7 @@ export interface Post {
 }
 
 export interface User {
+  id: string;
   username: string;
   email: string;
   bio?: string;
@@ -32,4 +33,17 @@ export interface ToastMessage {
   id: number;
   message: string;
   type: ToastType;
+}
+
+export type NotificationType = 'upvote' | 'downvote' | 'comment';
+
+export interface Notification {
+  id: string;
+  recipient_id: string;
+  actor_username: string;
+  type: NotificationType;
+  post_id: string;
+  comment_id?: string;
+  read: boolean;
+  created_at: string;
 }
