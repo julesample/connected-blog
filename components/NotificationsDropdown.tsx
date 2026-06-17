@@ -18,10 +18,17 @@ const NotificationsDropdown: React.FC = () => {
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
+        if (!currentUser?.id) {
+          console.log("[v0] No user ID available for notifications");
+          setNotifications([]);
+          return;
+        }
+        console.log('[v0] NotificationsDropdown: Fetching notifications for user:', currentUser.id, 'username:', currentUser.username);
         const data = await api.fetchNotifications(currentUser.id);
+        console.log('[v0] NotificationsDropdown: Received notifications:', data);
         setNotifications(data);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error('[v0] Error fetching notifications:', error);
       } finally {
         setIsLoading(false);
       }

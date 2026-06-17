@@ -769,25 +769,30 @@ export const createNotification = async (
   commentId?: string
 ): Promise<void> => {
   try {
-    const { error } = await supabase.from('notifications').insert({
+    console.log('[v0] Creating notification - recipientId:', recipientId, 'actor:', actorUsername, 'type:', type);
+    
+    const { data, error } = await supabase.from('notifications').insert({
       recipient_id: recipientId,
       actor_username: actorUsername,
       type,
       post_id: postId,
       comment_id: commentId || null,
       read: false,
-    });
+    }).select();
 
     if (error) {
-      console.error('Error creating notification:', error);
+      console.error('[v0] Error creating notification:', error.message, error.code, error.details);
+    } else {
+      console.log('[v0] Notification created successfully:', data);
     }
   } catch (error) {
-    console.error('Error in createNotification:', error);
+    console.error('[v0] Error in createNotification:', error);
   }
 };
 
 export const fetchNotifications = async (userId: string): Promise<any[]> => {
   try {
+    console.log('[v0] Fetching notifications for userId:', userId);
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
@@ -796,13 +801,14 @@ export const fetchNotifications = async (userId: string): Promise<any[]> => {
       .limit(50);
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('[v0] Error fetching notifications:', error.message, error.code, error.details);
       return [];
     }
 
+    console.log('[v0] Notifications fetched:', notifications?.length || 0, 'items', notifications);
     return notifications || [];
   } catch (error) {
-    console.error('Error in fetchNotifications:', error);
+    console.error('[v0] Error in fetchNotifications:', error);
     return [];
   }
 };
