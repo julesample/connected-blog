@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
 import Icon from './Icon';
 import { Notification } from '../types';
 
 const NotificationsDropdown: React.FC = () => {
   const { currentUser } = useUser();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,14 +97,16 @@ const NotificationsDropdown: React.FC = () => {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300
-                   hover:bg-slate-300 dark:hover:bg-slate-600 focus:outline-none focus:ring-2
-                   focus:ring-offset-2 focus:ring-primary-500 focus:ring-offset-slate-50 dark:focus:ring-offset-slate-900"
-        title="Notifications"
+        className={`relative p-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 focus:ring-offset-slate-50 dark:focus:ring-offset-slate-900 ${
+          unreadCount > 0
+            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50'
+            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+        }`}
+        title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'Notifications'}
       >
         <Icon name="bell" className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+          <span className="absolute top-1 right-1 inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -136,32 +140,41 @@ const NotificationsDropdown: React.FC = () => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 border-b border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                  className={`p-4 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
                     !notification.read ? 'bg-primary-50 dark:bg-primary-900/20' : ''
                   }`}
-                  onClick={() => handleMarkAsRead(notification.id)}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getNotificationIcon(notification.type)}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMarkAsRead(notification.id);
+                      navigate(`/post/${notification.post_id}`);
+                      setIsOpen(false);
+                    }}
+                    className="w-full text-left hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+                          {getNotificationText(notification)}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {new Date(notification.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {!notification.read && (
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary-600 mt-1.5" />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        {getNotificationText(notification)}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {new Date(notification.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary-600 mt-1.5" />
-                    )}
-                  </div>
+                  </button>
                 </div>
               ))
             )}
