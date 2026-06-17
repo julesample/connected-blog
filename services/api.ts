@@ -65,6 +65,7 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
     if (!user) return null;
 
     return {
+      id: user.id,
       username: user.username,
       email: user.email,
       bio: user.bio,
@@ -87,6 +88,7 @@ export const getUserByUsername = async (username: string): Promise<User | null> 
     if (!user) return null;
 
     return {
+      id: user.id,
       username: user.username,
       email: user.email,
       bio: user.bio,
