@@ -50,6 +50,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     try {
       if (currentUser && currentUser.username) {
+        // Fetch user posts and all posts in parallel for faster loading
         const [userPosts, allPostsData] = await Promise.all([
           postsService.getUserPosts(currentUser.username),
           postsService.getAllPosts()
@@ -68,21 +69,21 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       isFetchingRef.current = false;
       setIsLoading(false);
     }
-  }, []);
-
-  // Initial fetch on mount
-  useEffect(() => {
-    if (!isFetchingRef.current && allPosts.length === 0) {
-      fetchPosts(false);
-    }
-  }, []);
+  }, [currentUser]);
 
   // Fetch when current user changes
   useEffect(() => {
     if (currentUser) {
+      // Force refresh when user logs in
+      lastFetchTimeRef.current = 0;
       fetchPosts(true);
+    } else {
+      // Reset data when user logs out
+      setPosts([]);
+      setAllPosts([]);
+      lastFetchTimeRef.current = 0;
     }
-  }, [currentUser?.username]);
+  }, [currentUser?.username, fetchPosts]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

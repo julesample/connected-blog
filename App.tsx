@@ -11,7 +11,6 @@ import Explore from './components/Explore';
 import About from './components/About';
 import Settings from './components/Settings';
 import UserProfile from './components/UserProfile';
-import LandingPage from './components/LandingPage';
 
 function App() {
   return (
@@ -51,13 +50,7 @@ const MainApp: React.FC = () => {
   }, []);
 
   if (!currentUser) {
-    return (
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="*" element={<LandingPage />} />
-      </Routes>
-    );
+    return <Auth />;
   }
 
   return (
