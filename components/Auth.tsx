@@ -173,10 +173,12 @@ const Auth: React.FC = () => {
               
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 dark:hover:text-white focus:outline-none text-2xl"
+                className="absolute top-4 right-4 inline-flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                 aria-label="Close modal"
               >
-                &#x2715;
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>

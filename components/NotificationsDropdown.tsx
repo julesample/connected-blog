@@ -15,7 +15,7 @@ const NotificationsDropdown: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !isOpen) return;
 
     const fetchNotifications = async () => {
       setIsLoading(true);
@@ -33,13 +33,9 @@ const NotificationsDropdown: React.FC = () => {
       }
     };
 
-    // Initial fetch
+    // Fetch notifications only when dropdown is opened
     fetchNotifications();
-    
-    // Refresh notifications every 10 seconds (faster for better UX)
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
