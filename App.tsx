@@ -11,6 +11,7 @@ import Explore from './components/Explore';
 import About from './components/About';
 import Settings from './components/Settings';
 import UserProfile from './components/UserProfile';
+import LandingPage from './components/LandingPage';
 
 function App() {
   return (
@@ -49,9 +50,14 @@ const MainApp: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
   if (!currentUser) {
-    return <Auth />;
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="*" element={<LandingPage />} />
+      </Routes>
+    );
   }
 
   return (

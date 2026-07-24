@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '../context/UserContext';
+import { useSearchParams } from 'react-router-dom';
 import Icon from './Icon';
 const Auth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  const [isLogin, setIsLogin] = useState(modeParam === 'signup' ? false : true);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
