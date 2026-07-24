@@ -462,14 +462,14 @@ const UserProfile: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Regular Posts Section */}
-                        {filteredUnpinnedPosts.length > 0 && (
-                            <div>
-                                {pinnedPosts.length > 0 && (
-                                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-                                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                            <Icon name="pencil-square" className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                                            Recent Posts ({filteredUnpinnedPosts.length})
+  {/* Regular Posts Section */}
+  {filteredAndSortedPosts.length > 0 && (
+    <div>
+    {pinnedPosts.length > 0 && (
+      <div className="px-6 py-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+        <Icon name="pencil-square" className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+        Recent Posts ({filteredAndSortedPosts.length})
                                         </h3>
                                        
                                     </div>
