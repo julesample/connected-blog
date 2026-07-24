@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePostsContext } from '../context/PostsContext';
 import { useUser } from '../context/UserContext';
 import Icon from './Icon';
 import { Post } from '../types';
 
-const VoteControl: React.FC<{ post: Post }> = ({ post }) => {
+const VoteControl: React.FC<{ post: Post }> = React.memo(({ post }) => {
   const { vote } = usePostsContext();
   const { currentUser } = useUser();
 
-  const isUpvoted = currentUser ? post.upvotes.includes(currentUser.username) : false;
-  const isDownvoted = currentUser ? post.downvotes.includes(currentUser.username) : false;
+  const isUpvoted = useMemo(() => currentUser ? post.upvotes.includes(currentUser.username) : false, [currentUser, post.upvotes]);
+  const isDownvoted = useMemo(() => currentUser ? post.downvotes.includes(currentUser.username) : false, [currentUser, post.downvotes]);
 
   return (
     <div className="flex items-center gap-1">
@@ -24,7 +24,7 @@ const VoteControl: React.FC<{ post: Post }> = ({ post }) => {
       </button>
     </div>
   );
-};
+});
 
 const Explore: React.FC = () => {
   const { allPosts, isLoading, refreshPosts } = usePostsContext();
@@ -41,11 +41,6 @@ const Explore: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortBy]);
-
-  // Auto-refresh posts when component mounts
-  useEffect(() => {
-    refreshPosts();
-  }, [refreshPosts]);
 
   const getVoteScore = (post: Post) => {
     return post.upvotes.length - post.downvotes.length;

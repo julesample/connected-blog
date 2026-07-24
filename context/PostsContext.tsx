@@ -30,7 +30,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const isFetchingRef = useRef<boolean>(false);
   const lastFetchTimeRef = useRef<number>(0);
   const cacheTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const cacheTimeout = 45000; // 45 second cache for better performance
+  const cacheTimeout = 60000; // 60 second cache for optimal performance
 
   const fetchPosts = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
@@ -40,7 +40,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    // Don't fetch if we fetched less than 45 seconds ago and not forced
+    // Don't fetch if we fetched less than 60 seconds ago and not forced
     if (!forceRefresh && now - lastFetchTimeRef.current < cacheTimeout && (posts.length > 0 || allPosts.length > 0)) {
       return;
     }

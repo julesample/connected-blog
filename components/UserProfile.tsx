@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Post, User } from '../types';
 import * as authService from '../services/authService';
@@ -55,9 +55,9 @@ const UserProfile: React.FC = () => {
         }
     };
 
-    // Calculate total upvotes and comments from posts
-    const totalUpvotes = posts.reduce((acc, post) => acc + post.upvotes.length, 0);
-    const totalComments = posts.reduce((acc, post) => acc + post.comments.length, 0);
+    // Memoize calculations
+    const totalUpvotes = useMemo(() => posts.reduce((acc, post) => acc + post.upvotes.length, 0), [posts]);
+    const totalComments = useMemo(() => posts.reduce((acc, post) => acc + post.comments.length, 0), [posts]);
 
     // Calculate posting streak (consecutive days with posts)
     const calculateStreak = (posts: Post[]) => {
@@ -90,7 +90,7 @@ const UserProfile: React.FC = () => {
         return streak;
     };
 
-    const postingStreak = calculateStreak(posts);
+    const postingStreak = useMemo(() => calculateStreak(posts), [posts]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -203,27 +203,26 @@ const UserProfile: React.FC = () => {
     return text.substring(0, maxLength) + '...';
   };
 
-    // Use the new state variables for pinned and unpinned posts
-    // Filter unpinned posts based on search query
-    const filteredUnpinnedPosts = unpinnedPosts.filter(post =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
+    // Use useMemo to optimize filtering and pagination
+    const filteredAndSortedPosts = useMemo(() => {
+        const unpinnedPostsExcludingPinned = unpinnedPosts.filter(post => !post.pinned);
+        return unpinnedPostsExcludingPinned
+            .filter(post =>
+                post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [unpinnedPosts, searchQuery]);
+
+    const totalPages = useMemo(() => Math.ceil(filteredAndSortedPosts.length / postsPerPage), [filteredAndSortedPosts.length, postsPerPage]);
+    
+    const paginatedPosts = useMemo(() => 
+        filteredAndSortedPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage),
+        [filteredAndSortedPosts, currentPage, postsPerPage]
     );
 
-    // Pagination only applies to unpinned posts excluding pinned posts
-    const unpinnedPostsExcludingPinned = unpinnedPosts.filter(post => !post.pinned);
-    const filteredUnpinnedPostsExcludingPinned = unpinnedPostsExcludingPinned
-        .filter(post =>
-            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.content.replace(/<[^>]*>/g, '').toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Sort by createdAt descending
-    const totalPages = Math.ceil(filteredUnpinnedPostsExcludingPinned.length / postsPerPage);
-    const paginatedPosts = filteredUnpinnedPostsExcludingPinned
-        .slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
-
     // Combine pinned posts (always shown) with paginated unpinned posts excluding pinned posts
-    const allDisplayedPosts = [...pinnedPosts, ...paginatedPosts];
+    const allDisplayedPosts = useMemo(() => [...pinnedPosts, ...paginatedPosts], [pinnedPosts, paginatedPosts]);
 
     return (
         <div className="space-y-8">
