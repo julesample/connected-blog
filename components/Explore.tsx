@@ -49,8 +49,7 @@ const Explore: React.FC = () => {
   // Simple filtering and sorting without expensive memoization
   const filteredAndSortedPosts = allPosts
     .filter(post =>
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.toLowerCase().includes(searchQuery.toLowerCase())
+      post.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       switch (sortBy) {
@@ -98,7 +97,7 @@ const Explore: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="block w-full rounded-md border-0 bg-white dark:bg-slate-800 py-2.5 pl-10 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-300 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6 transition"
-                placeholder="Search by title or author..."
+                placeholder="Search by title..."
               />
           </div>
         </div>
@@ -209,12 +208,9 @@ const Explore: React.FC = () => {
                       >
                         {truncateText(post.title, 60)}
                       </Link>
-                      <Link
-                        to={`/profile/${post.author}`}
-                        className="text-sm text-slate-500 dark:text-slate-400 hover:underline"
-                      >
-                        by {post.author}
-                      </Link>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        by Anonymous Writer
+                      </p>
                     </div>
                     <div className="ml-3 flex-shrink-0">
                       <VoteControl post={post} />
@@ -253,7 +249,6 @@ const Explore: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-700">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Title</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Author</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Votes</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-300">Created / Updated</th>
                     <th scope="col" className="relative px-6 py-3">
@@ -266,9 +261,6 @@ const Explore: React.FC = () => {
                     <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link to={`/post/${post.id}`} title={post.title} className="text-sm font-medium text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">{truncateText(post.title, 50)}</Link>
-                      </td>
-                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                        <Link to={`/profile/${post.author}`} className="hover:underline">{post.author}</Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <VoteControl post={post} />

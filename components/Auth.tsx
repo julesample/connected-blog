@@ -132,7 +132,7 @@ const Auth: React.FC = () => {
       try {
         setIsLoadingPosts(true);
         const allPosts = await postsService.getAllPosts();
-        setPublicPosts(allPosts.slice(0, 3)); // Show first 3 posts
+        setPublicPosts(allPosts); // Show all posts
       } catch (error) {
         console.error('Error fetching posts:', error);
       } finally {
@@ -180,7 +180,7 @@ const Auth: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-screen">
         {/* Left: Auth Form */}
-        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 order-2 lg:order-1">
           <div className="w-full max-w-md space-y-8">
             {/* Product Description Section */}
             <div className="text-center">
@@ -395,8 +395,8 @@ const Auth: React.FC = () => {
         </div>
 
         {/* Right: Public Feed */}
-        <div className="hidden lg:flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-md space-y-4">
+        <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 order-1 lg:order-2">
+          <div className="w-full max-w-2xl space-y-4">
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Community Highlights</h3>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -409,14 +409,20 @@ const Auth: React.FC = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               </div>
             ) : publicPosts.length > 0 ? (
-              <div className="space-y-4">
-                {publicPosts.map((post, index) => (
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                {publicPosts.slice(0, 5).map((post, index) => (
                   <AnonymousPostCard key={post.id} post={post} index={index} />
                 ))}
               </div>
             ) : (
               <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 text-center">
                 <p className="text-slate-600 dark:text-slate-400">No posts yet. Be the first to share!</p>
+              </div>
+            )}
+
+            {publicPosts.length > 5 && (
+              <div className="text-center text-sm text-slate-600 dark:text-slate-400">
+                Showing 5 of {publicPosts.length} posts
               </div>
             )}
 
