@@ -418,14 +418,16 @@ const Auth: React.FC = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               </div>
             ) : publicPosts.length > 0 ? (
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                {publicPosts.slice(0, 5).map((post, index) => (
-                  <AnonymousPostCard key={post.id} post={post} index={index} />
-                ))}
+              <div className="space-y-4">
+                {publicPosts.slice(0, 5).map((post, index) => {
+                  console.log("[v0] Rendering post:", post.id, post.title);
+                  return <AnonymousPostCard key={post.id} post={post} index={index} />;
+                })}
               </div>
             ) : (
               <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 text-center">
                 <p className="text-slate-600 dark:text-slate-400">No posts yet. Be the first to share!</p>
+                <p className="text-xs text-slate-500 mt-2">[Posts: {publicPosts.length}, Loading: {isLoadingPosts}]</p>
               </div>
             )}
 
