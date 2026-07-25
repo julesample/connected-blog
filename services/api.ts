@@ -146,6 +146,7 @@ export const updateUser = async (
 export const fetchAllPosts = async (): Promise<Post[]> => {
   return getCachedRequest('fetchAllPosts', async () => {
     try {
+      console.log("[v0] Fetching all posts from Supabase...");
       // Fetch all posts ordered by newest first
       const { data: posts, error } = await supabase
         .from('posts')
@@ -157,18 +158,31 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
             author:users!comments_author_id_fkey(username)
           ),
           votes(vote_type, user:users!votes_user_id_fkey(username))
-        `)
+        `, { count: 'exact' })
         .order('created_at', { ascending: false });
 
+      console.log("[v0] Supabase response - error:", error, "posts count:", posts?.length);
+      
       if (error) {
-        console.error('Error fetching posts:', error);
+        console.error('[v0] Supabase error - code:', error.code, 'message:', error.message, 'details:', error.details);
+        // Even if there's an error, try to return empty array instead of blocking
         return [];
       }
 
+      if (!posts) {
+        console.log("[v0] No posts returned from query");
+        return [];
+      }
+
+      console.log("[v0] Raw posts from DB:", posts.length);
       // Filter out posts from private users
-      return posts.filter(post => !post.author.is_private).map(transformPostFromDB);
+      const filtered = posts
+        .filter(post => post.author && !post.author.is_private)
+        .map(transformPostFromDB);
+      console.log("[v0] Filtered posts:", filtered.length);
+      return filtered;
     } catch (error) {
-      console.error('Error in fetchAllPosts:', error);
+      console.error('[v0] Error in fetchAllPosts:', error);
       return [];
     }
   });

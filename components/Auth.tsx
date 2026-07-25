@@ -131,10 +131,18 @@ const Auth: React.FC = () => {
     const fetchPublicPosts = async () => {
       try {
         setIsLoadingPosts(true);
+        console.log("[v0] Starting to fetch posts from postsService...");
         const allPosts = await postsService.getAllPosts();
+        console.log("[v0] Posts fetched successfully:", allPosts);
+        console.log("[v0] Total posts:", allPosts?.length ?? 0);
         setPublicPosts(allPosts || []); // Show all posts
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error('[v0] Error fetching posts:', error);
+        console.error('[v0] Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          type: error instanceof Error ? error.name : typeof error,
+          stack: error instanceof Error ? error.stack : 'no stack'
+        });
         setPublicPosts([]);
       } finally {
         setIsLoadingPosts(false);
