@@ -49,7 +49,6 @@ const MainApp: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
   if (!currentUser) {
     return <Auth />;
   }

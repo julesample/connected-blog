@@ -1,8 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useUser } from '../context/UserContext';
+import { useSearchParams } from 'react-router-dom';
 import Icon from './Icon';
+import { Post } from '../types';
+import * as postsService from '../services/postsService';
+const AnonymousPostCard: React.FC<{ post: Post; index: number }> = ({ post, index }) => {
+  const getAuthorNumber = (str: string) => {
+    return (str.charCodeAt(0) + str.charCodeAt(str.length - 1)) % 8;
+  };
+
+  const authorNumber = getAuthorNumber(post.author);
+  const colors = [
+    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+    'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400',
+    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400',
+    'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
+    'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
+  ];
+
+  const authorColor = colors[authorNumber];
+  const voteScore = post.upvotes.length - post.downvotes.length;
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '');
+  const truncate = (text: string, length: number) => {
+    if (text.length <= length) return text;
+    return text.substring(0, length) + '...';
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${authorColor}`}>
+          A{index + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Anonymous Writer</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {new Date(post.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 line-clamp-2">
+          {post.title}
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">
+          {truncate(stripHtml(post.content), 150)}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
+        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1">
+            <Icon name="arrow-trending-up" className="h-4 w-4" />
+            <span className={voteScore > 0 ? 'text-green-600 dark:text-green-400 font-semibold' : voteScore < 0 ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+              {voteScore > 0 ? '+' : ''}{voteScore}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Icon name="chat-bubble-left" className="h-4 w-4" />
+            {post.comments.length}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Auth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  const [isLogin, setIsLogin] = useState(modeParam === 'signup' ? false : true);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -10,6 +81,8 @@ const Auth: React.FC = () => {
   const [mathQuestion, setMathQuestion] = useState({ question: '', answer: 0 });
   const [userAnswer, setUserAnswer] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [publicPosts, setPublicPosts] = useState<Post[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const { login, register } = useUser();
 
   // Generate math question for registration
@@ -52,6 +125,32 @@ const Auth: React.FC = () => {
       generateMathQuestion();
     }
   }, [isLogin]);
+
+  // Fetch public posts on mount
+  useEffect(() => {
+    const fetchPublicPosts = async () => {
+      try {
+        setIsLoadingPosts(true);
+        console.log("[v0] Starting to fetch posts from postsService...");
+        const allPosts = await postsService.getAllPosts();
+        console.log("[v0] Posts fetched successfully:", allPosts);
+        console.log("[v0] Total posts:", allPosts?.length ?? 0);
+        setPublicPosts(allPosts || []); // Show all posts
+      } catch (error) {
+        console.error('[v0] Error fetching posts:', error);
+        console.error('[v0] Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          type: error instanceof Error ? error.name : typeof error,
+          stack: error instanceof Error ? error.stack : 'no stack'
+        });
+        setPublicPosts([]);
+      } finally {
+        setIsLoadingPosts(false);
+      }
+    };
+
+    fetchPublicPosts();
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -87,25 +186,28 @@ const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full space-y-8">
-        {/* Product Description Section */}
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
-            Connected-Blog
-          </h1>
-          <p className="mt-4 text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-            Your AI-powered space for creating, sharing, and discovering content. Join a community of writers and readers where artificial intelligence meets human creativity.
-            Made by <a href="https://julesample.vercel.app/" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a>
-          </p>
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); setShowModal(true); }}
-            className="mt-6 inline-block text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-          >
-            Learn More
-          </a>
-        </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-screen">
+        {/* Left: Auth Form */}
+        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 order-2 lg:order-1">
+          <div className="w-full max-w-md space-y-8">
+            {/* Product Description Section */}
+            <div className="text-center">
+              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
+                Connected-Blog
+              </h1>
+              <p className="mt-4 text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
+                Your AI-powered space for creating, sharing, and discovering content.
+                Made by <a href="https://julesample.vercel.app/" target="_blank"  className="text-primary-600 dark:text-primary-400">Julesample</a>
+              </p>
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); setShowModal(true); }}
+                className="mt-6 inline-block text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+              >
+                Learn More
+              </a>
+            </div>
 
         {/* Modal */}
         {showModal && (
@@ -173,25 +275,26 @@ const Auth: React.FC = () => {
               
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 dark:hover:text-white focus:outline-none text-2xl"
+                className="absolute top-4 right-4 inline-flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                 aria-label="Close modal"
               >
-                &#x2715;
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
         )}
 
-        {/* Authentication Form */}
-        <div className="max-w-md mx-auto">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
-          </h2>
-          <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-            {isLogin ? 'Welcome back! Sign in to continue your journey.' : 'Join our community of writers and creators.'}
-          </p>
-        </div>
+            {/* Authentication Form */}
+            <div>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
+                {isLogin ? 'Sign in to your account' : 'Create your account'}
+              </h2>
+              <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+                {isLogin ? 'Welcome back! Sign in to continue your journey.' : 'Join our community of writers and creators.'}
+              </p>
+            </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -297,6 +400,47 @@ const Auth: React.FC = () => {
             </button>
           </div>
         </form>
+          </div>
+        </div>
+
+        {/* Right: Public Feed */}
+        <div className="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 order-1 lg:order-2">
+          <div className="w-full max-w-2xl space-y-4">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Community Highlights</h3>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                Read what our anonymous writers are sharing
+              </p>
+            </div>
+
+            {isLoadingPosts ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              </div>
+            ) : publicPosts.length > 0 ? (
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                {publicPosts.slice(0, 5).map((post, index) => (
+                  <AnonymousPostCard key={post.id} post={post} index={index} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 text-center">
+                <p className="text-slate-600 dark:text-slate-400">No posts yet. Be the first to share!</p>
+              </div>
+            )}
+
+            {publicPosts.length > 5 && (
+              <div className="text-center text-sm text-slate-600 dark:text-slate-400">
+                Showing 5 of {publicPosts.length} posts
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                All authors are completely anonymous. Join to unlock the full experience!
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

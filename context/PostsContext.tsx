@@ -29,7 +29,8 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isLoading, setIsLoading] = useState(false);
   const isFetchingRef = useRef<boolean>(false);
   const lastFetchTimeRef = useRef<number>(0);
-  const cacheTimeout = 30000; // 30 second cache
+  const cacheTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cacheTimeout = 60000; // 60 second cache for optimal performance
 
   const fetchPosts = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
@@ -39,7 +40,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    // Don't fetch if we fetched less than 30 seconds ago and not forced
+    // Don't fetch if we fetched less than 60 seconds ago and not forced
     if (!forceRefresh && now - lastFetchTimeRef.current < cacheTimeout && (posts.length > 0 || allPosts.length > 0)) {
       return;
     }
@@ -49,6 +50,7 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     try {
       if (currentUser && currentUser.username) {
+        // Fetch user posts and all posts in parallel for faster loading
         const [userPosts, allPostsData] = await Promise.all([
           postsService.getUserPosts(currentUser.username),
           postsService.getAllPosts()
@@ -67,21 +69,30 @@ export const PostsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       isFetchingRef.current = false;
       setIsLoading(false);
     }
-  }, [currentUser, posts.length, allPosts.length]);
-
-  // Initial fetch on mount
-  useEffect(() => {
-    if (!isFetchingRef.current && allPosts.length === 0) {
-      fetchPosts(false);
-    }
-  }, []);
+  }, [currentUser]);
 
   // Fetch when current user changes
   useEffect(() => {
     if (currentUser) {
+      // Force refresh when user logs in
+      lastFetchTimeRef.current = 0;
       fetchPosts(true);
+    } else {
+      // Reset data when user logs out
+      setPosts([]);
+      setAllPosts([]);
+      lastFetchTimeRef.current = 0;
     }
-  }, [currentUser?.username]);
+  }, [currentUser?.username, fetchPosts]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (cacheTimeoutRef.current) {
+        clearTimeout(cacheTimeoutRef.current);
+      }
+    };
+  }, []);
   
   const refreshPosts = useCallback(() => {
     fetchPosts(true); // Force refresh
