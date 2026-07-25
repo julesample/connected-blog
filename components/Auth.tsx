@@ -3,7 +3,7 @@ import { useUser } from '../context/UserContext';
 import { useSearchParams } from 'react-router-dom';
 import Icon from './Icon';
 import { Post } from '../types';
-import * as postsService from '../services/postsService';
+import * as api from '../services/api';
 const AnonymousPostCard: React.FC<{ post: Post; index: number }> = ({ post, index }) => {
   const getAuthorNumber = (str: string) => {
     return (str.charCodeAt(0) + str.charCodeAt(str.length - 1)) % 8;
@@ -131,10 +131,11 @@ const Auth: React.FC = () => {
     const fetchPublicPosts = async () => {
       try {
         setIsLoadingPosts(true);
-        const allPosts = await postsService.getAllPosts();
-        setPublicPosts(allPosts); // Show all posts
+        const allPosts = await api.fetchAllPosts();
+        setPublicPosts(allPosts || []); // Show all posts
       } catch (error) {
         console.error('Error fetching posts:', error);
+        setPublicPosts([]);
       } finally {
         setIsLoadingPosts(false);
       }
