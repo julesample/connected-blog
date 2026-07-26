@@ -146,9 +146,9 @@ export const updateUser = async (
 export const fetchAllPosts = async (): Promise<Post[]> => {
   return getCachedRequest('fetchAllPosts', async () => {
     try {
-      console.log("[v0] Fetching all posts from Supabase...");
-      // Fetch all posts ordered by newest first
-      const { data: posts, error } = await supabase
+      console.log("[v0] Fetching all public posts from Supabase...");
+      // Fetch all public posts ordered by newest first
+      let { data: posts, error } = await supabase
         .from('posts')
         .select(`
           *,
@@ -186,6 +186,95 @@ export const fetchAllPosts = async (): Promise<Post[]> => {
       return [];
     }
   });
+};
+
+export const fetchPublicPostsPaginated = async (page: number = 1, limit: number = 10, sortBy: 'newest' | 'trending' | 'most-liked' | 'most-commented' = 'newest'): Promise<{ posts: Post[], total: number }> => {
+  try {
+    const offset = (page - 1) * limit;
+    
+    console.log(`[v0] Fetching paginated public posts - page: ${page}, limit: ${limit}, sort: ${sortBy}`);
+    
+    // Build base query - don't filter by visibility if column doesn't exist
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        author:users!posts_author_id_fkey(username, is_private),
+        comments(
+          *,
+          author:users!comments_author_id_fkey(username)
+        ),
+        votes(vote_type, user:users!votes_user_id_fkey(username))
+      `, { count: 'exact' });
+    
+    // Apply sort
+    if (sortBy === 'newest') {
+      query = query.order('created_at', { ascending: false });
+    } else if (sortBy === 'trending') {
+      // For trending, we need to sort by created_at DESC but fetch more data
+      query = query.order('created_at', { ascending: false });
+    } else if (sortBy === 'most-liked' || sortBy === 'most-commented') {
+      // These require more complex sorting, for now sort by created_at
+      query = query.order('created_at', { ascending: false });
+    }
+    
+    // Apply pagination
+    const { data: posts, error, count } = await query.range(offset, offset + limit - 1);
+    
+    if (error) {
+      console.error('[v0] Error fetching paginated posts:', error);
+      // If visibility column doesn't exist, fetch without that filter
+      const { data: postsNoVisibility, error: errorNoVisibility, count: countNoVisibility } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          author:users!posts_author_id_fkey(username, is_private),
+          comments(
+            *,
+            author:users!comments_author_id_fkey(username)
+          ),
+          votes(vote_type, user:users!votes_user_id_fkey(username))
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (errorNoVisibility) {
+        console.error('[v0] Error fetching posts without visibility filter:', errorNoVisibility);
+        return { posts: [], total: 0 };
+      }
+      
+      if (!postsNoVisibility) {
+        return { posts: [], total: 0 };
+      }
+      
+      // Filter by private users and transform
+      const filtered = postsNoVisibility
+        .filter(post => post.author && !post.author.is_private)
+        .map(transformPostFromDB);
+      
+      return { 
+        posts: filtered, 
+        total: countNoVisibility || 0 
+      };
+    }
+    
+    if (!posts) {
+      return { posts: [], total: 0 };
+    }
+    
+    // Filter by private users and transform
+    const filtered = posts
+      .filter(post => post.author && !post.author.is_private)
+      .map(transformPostFromDB);
+    
+    return { 
+      posts: filtered, 
+      total: count || 0 
+    };
+  } catch (error) {
+    console.error('[v0] Error in fetchPublicPostsPaginated:', error);
+    return { posts: [], total: 0 };
+  }
 };
 
 export const fetchUserPosts = async (username: string): Promise<Post[]> => {
@@ -948,6 +1037,7 @@ const transformPostFromDB = (dbPost: any): Post => {
     upvotes,
     downvotes,
     comments,
-    pinned: dbPost.pinned
+    pinned: dbPost.pinned,
+    visibility: dbPost.visibility || 'public'
   };
 };

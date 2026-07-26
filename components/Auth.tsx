@@ -3,7 +3,28 @@ import { useUser } from '../context/UserContext';
 import { useSearchParams } from 'react-router-dom';
 import Icon from './Icon';
 import { Post } from '../types';
-import * as postsService from '../services/postsService';
+import * as api from '../services/api';
+const PostSkeleton: React.FC = () => (
+  <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-pulse">
+    <div className="flex items-start gap-3 mb-3">
+      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700" />
+      <div className="flex-1">
+        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-2" />
+        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24" />
+      </div>
+    </div>
+    <div className="mb-3">
+      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-full mb-2" />
+      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full mb-1" />
+      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+    </div>
+    <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12" />
+      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12" />
+    </div>
+  </div>
+);
+
 const AnonymousPostCard: React.FC<{ post: Post; index: number }> = ({ post, index }) => {
   const getAuthorNumber = (str: string) => {
     return (str.charCodeAt(0) + str.charCodeAt(str.length - 1)) % 8;
@@ -53,17 +74,20 @@ const AnonymousPostCard: React.FC<{ post: Post; index: number }> = ({ post, inde
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
-        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-1">
-            <Icon name="arrow-trending-up" className="h-4 w-4" />
-            <span className={voteScore > 0 ? 'text-green-600 dark:text-green-400 font-semibold' : voteScore < 0 ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+        <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold">
               {voteScore > 0 ? '+' : ''}{voteScore}
             </span>
+            <span className="text-xs">Like{voteScore !== 1 ? 's' : ''}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <Icon name="chat-bubble-left" className="h-4 w-4" />
-            {post.comments.length}
+            {post.comments.length} {post.comments.length === 1 ? 'Comment' : 'Comments'}
           </div>
+        </div>
+        <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded">
+          Public
         </div>
       </div>
     </div>
@@ -83,6 +107,11 @@ const Auth: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [sortBy, setSortBy] = useState<'newest' | 'trending' | 'most-liked' | 'most-commented'>('newest');
+  const [postsPerPage] = useState(5);
   const { login, register } = useUser();
 
   // Generate math question for registration
@@ -126,16 +155,18 @@ const Auth: React.FC = () => {
     }
   }, [isLogin]);
 
-  // Fetch public posts on mount
+  // Fetch public posts on mount and when sort changes
   useEffect(() => {
     const fetchPublicPosts = async () => {
       try {
         setIsLoadingPosts(true);
-        console.log("[v0] Starting to fetch posts from postsService...");
-        const allPosts = await postsService.getAllPosts();
-        console.log("[v0] Posts fetched successfully:", allPosts);
-        console.log("[v0] Total posts:", allPosts?.length ?? 0);
-        setPublicPosts(allPosts || []); // Show all posts
+        console.log("[v0] Starting to fetch paginated posts...");
+        const result = await api.fetchPublicPostsPaginated(1, postsPerPage, sortBy);
+        console.log("[v0] Posts fetched successfully:", result.posts.length);
+        console.log("[v0] Total posts:", result.total);
+        setPublicPosts(result.posts);
+        setTotalPosts(result.total);
+        setCurrentPage(1);
       } catch (error) {
         console.error('[v0] Error fetching posts:', error);
         console.error('[v0] Error details:', {
@@ -150,7 +181,23 @@ const Auth: React.FC = () => {
     };
 
     fetchPublicPosts();
-  }, []);
+  }, [sortBy, postsPerPage]);
+
+  // Load more posts for infinite scroll
+  const loadMorePosts = async () => {
+    try {
+      setIsLoadingMorePosts(true);
+      const nextPage = currentPage + 1;
+      const result = await api.fetchPublicPostsPaginated(nextPage, postsPerPage, sortBy);
+      console.log("[v0] Loaded more posts:", result.posts.length);
+      setPublicPosts(prev => [...prev, ...result.posts]);
+      setCurrentPage(nextPage);
+    } catch (error) {
+      console.error('[v0] Error loading more posts:', error);
+    } finally {
+      setIsLoadingMorePosts(false);
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -413,15 +460,39 @@ const Auth: React.FC = () => {
               </p>
             </div>
 
+            {/* Sort Options */}
+            <div className="flex gap-2 justify-center flex-wrap">
+              {(['newest', 'trending', 'most-liked', 'most-commented'] as const).map((sort) => (
+                <button
+                  key={sort}
+                  onClick={() => setSortBy(sort)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                    sortBy === sort
+                      ? 'bg-primary-600 text-white dark:bg-primary-600'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  {sort.charAt(0).toUpperCase() + sort.slice(1).replace('-', ' ')}
+                </button>
+              ))}
+            </div>
+
             {isLoadingPosts ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <PostSkeleton key={i} />
+                ))}
               </div>
             ) : publicPosts.length > 0 ? (
-              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                {publicPosts.slice(0, 5).map((post, index) => (
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {publicPosts.map((post, index) => (
                   <AnonymousPostCard key={post.id} post={post} index={index} />
                 ))}
+                {isLoadingMorePosts && (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6 text-center">
@@ -429,9 +500,20 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            {publicPosts.length > 5 && (
-              <div className="text-center text-sm text-slate-600 dark:text-slate-400">
-                Showing 5 of {publicPosts.length} posts
+            {/* Load More Button */}
+            {publicPosts.length > 0 && publicPosts.length < totalPosts && (
+              <button
+                onClick={loadMorePosts}
+                disabled={isLoadingMorePosts}
+                className="w-full py-2 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+              >
+                {isLoadingMorePosts ? 'Loading...' : `Load More (${publicPosts.length} of ${totalPosts})`}
+              </button>
+            )}
+
+            {publicPosts.length > 0 && (
+              <div className="text-center text-xs text-slate-600 dark:text-slate-400">
+                Showing {publicPosts.length} of {totalPosts} posts
               </div>
             )}
 
