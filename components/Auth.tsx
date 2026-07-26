@@ -107,11 +107,7 @@ const Auth: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPosts, setTotalPosts] = useState(0);
-  const [sortBy, setSortBy] = useState<'newest' | 'trending' | 'most-liked' | 'most-commented'>('newest');
-  const [postsPerPage] = useState(5);
   const { login, register } = useUser();
 
   // Generate math question for registration
@@ -155,25 +151,19 @@ const Auth: React.FC = () => {
     }
   }, [isLogin]);
 
-  // Fetch public posts on mount and when sort changes
+  // Fetch public posts on mount
   useEffect(() => {
     const fetchPublicPosts = async () => {
       try {
         setIsLoadingPosts(true);
-        console.log("[v0] Starting to fetch paginated posts...");
-        const result = await api.fetchPublicPostsPaginated(1, postsPerPage, sortBy);
-        console.log("[v0] Posts fetched successfully:", result.posts.length);
-        console.log("[v0] Total posts:", result.total);
-        setPublicPosts(result.posts);
-        setTotalPosts(result.total);
+        console.log("[v0] Auth component mounting, fetching posts...");
+        const allPosts = await api.fetchAllPosts();
+        console.log("[v0] Fetched posts in Auth component:", allPosts.length);
+        setPublicPosts(allPosts);
+        setTotalPosts(allPosts.length);
         setCurrentPage(1);
       } catch (error) {
         console.error('[v0] Error fetching posts:', error);
-        console.error('[v0] Error details:', {
-          message: error instanceof Error ? error.message : String(error),
-          type: error instanceof Error ? error.name : typeof error,
-          stack: error instanceof Error ? error.stack : 'no stack'
-        });
         setPublicPosts([]);
       } finally {
         setIsLoadingPosts(false);
@@ -181,23 +171,7 @@ const Auth: React.FC = () => {
     };
 
     fetchPublicPosts();
-  }, [sortBy, postsPerPage]);
-
-  // Load more posts for infinite scroll
-  const loadMorePosts = async () => {
-    try {
-      setIsLoadingMorePosts(true);
-      const nextPage = currentPage + 1;
-      const result = await api.fetchPublicPostsPaginated(nextPage, postsPerPage, sortBy);
-      console.log("[v0] Loaded more posts:", result.posts.length);
-      setPublicPosts(prev => [...prev, ...result.posts]);
-      setCurrentPage(nextPage);
-    } catch (error) {
-      console.error('[v0] Error loading more posts:', error);
-    } finally {
-      setIsLoadingMorePosts(false);
-    }
-  };
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -460,23 +434,6 @@ const Auth: React.FC = () => {
               </p>
             </div>
 
-            {/* Sort Options */}
-            <div className="flex gap-2 justify-center flex-wrap">
-              {(['newest', 'trending', 'most-liked', 'most-commented'] as const).map((sort) => (
-                <button
-                  key={sort}
-                  onClick={() => setSortBy(sort)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                    sortBy === sort
-                      ? 'bg-primary-600 text-white dark:bg-primary-600'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }`}
-                >
-                  {sort.charAt(0).toUpperCase() + sort.slice(1).replace('-', ' ')}
-                </button>
-              ))}
-            </div>
-
             {isLoadingPosts ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -500,20 +457,9 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            {/* Load More Button */}
-            {publicPosts.length > 0 && publicPosts.length < totalPosts && (
-              <button
-                onClick={loadMorePosts}
-                disabled={isLoadingMorePosts}
-                className="w-full py-2 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
-              >
-                {isLoadingMorePosts ? 'Loading...' : `Load More (${publicPosts.length} of ${totalPosts})`}
-              </button>
-            )}
-
             {publicPosts.length > 0 && (
               <div className="text-center text-xs text-slate-600 dark:text-slate-400">
-                Showing {publicPosts.length} of {totalPosts} posts
+                Showing {publicPosts.length} {publicPosts.length === 1 ? 'post' : 'posts'}
               </div>
             )}
 
