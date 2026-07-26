@@ -17,7 +17,6 @@ export interface Post {
   downvotes: string[]; // Array of usernames who downvoted
   comments: Comment[];
   pinned?: boolean; // Optional pinned property for posts
-  visibility?: 'public' | 'private'; // Public/private visibility of the post
 }
 
 export interface User {

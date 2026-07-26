@@ -192,20 +192,10 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
   try {
     const offset = (page - 1) * limit;
     
-    console.log(`[v0] Fetching paginated public posts - page: ${page}, limit: ${limit}, sort: ${sortBy}`);
-    
-    // Build base query - fetch all posts with author and relationships
+    // Fetch posts directly from the table - only fetch columns that exist
     let query = supabase
       .from('posts')
-      .select(`
-        *,
-        author:users!posts_author_id_fkey(username, is_private),
-        comments(
-          *,
-          author:users!comments_author_id_fkey(username)
-        ),
-        votes(vote_type, user:users!votes_user_id_fkey(username))
-      `, { count: 'exact' });
+      .select('id,title,content,author_id,created_at,updated_at,pinned', { count: 'exact' });
     
     // Apply sort
     if (sortBy === 'newest') {
@@ -217,20 +207,66 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     }
     
     // Apply pagination
-    const { data: allPosts, error, count } = await query.range(offset, offset + limit - 1);
+    const { data: posts, error, count } = await query.range(offset, offset + limit - 1);
     
     if (error) {
-      console.error('[v0] Error fetching paginated posts:', error);
+      console.error('[v0] Error fetching posts:', error?.message);
+      // If visibility column error, try again without explicit columns
+      if (error?.message?.includes('visibility')) {
+        console.log('[v0] Retrying query without explicit columns...');
+        const { data: retryPosts, error: retryError, count: retryCount } = await supabase
+          .from('posts')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        
+        if (retryError) {
+          console.error('[v0] Retry also failed:', retryError?.message);
+          return { posts: [], total: 0 };
+        }
+        
+        if (!retryPosts || retryPosts.length === 0) {
+          return { posts: [], total: retryCount || 0 };
+        }
+        
+        const retryTransformed: Post[] = retryPosts.map((dbPost: any) => ({
+          id: dbPost.id,
+          title: dbPost.title,
+          content: dbPost.content,
+          author: 'Anonymous',
+          createdAt: dbPost.created_at,
+          updatedAt: dbPost.updated_at,
+          upvotes: [],
+          downvotes: [],
+          comments: [],
+          pinned: dbPost.pinned
+        }));
+        
+        return { 
+          posts: retryTransformed, 
+          total: retryCount || 0 
+        };
+      }
       return { posts: [], total: 0 };
     }
     
-    if (!allPosts || allPosts.length === 0) {
+    if (!posts || posts.length === 0) {
       return { posts: [], total: count || 0 };
     }
     
-    // Transform and return all posts
-    const transformed = allPosts
-      .map(transformPostFromDB);
+    // Map raw posts to Post type, anonymizing author
+    const transformed: Post[] = posts.map((dbPost: any) => ({
+      id: dbPost.id,
+      title: dbPost.title,
+      content: dbPost.content,
+      author: 'Anonymous',
+      createdAt: dbPost.created_at,
+      updatedAt: dbPost.updated_at,
+      upvotes: [],
+      downvotes: [],
+      comments: [],
+      pinned: dbPost.pinned
+    }));
     
     return { 
       posts: transformed, 
