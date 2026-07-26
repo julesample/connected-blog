@@ -194,7 +194,7 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     
     console.log(`[v0] Fetching paginated public posts - page: ${page}, limit: ${limit}, sort: ${sortBy}`);
     
-    // Build base query - fetch all posts with author relationships
+    // Build base query - fetch all posts with author and relationships
     let query = supabase
       .from('posts')
       .select(`
@@ -217,7 +217,7 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     }
     
     // Apply pagination
-    const { data: allPosts, error, count } = await query.range(offset, offset + (limit * 2 - 1));
+    const { data: allPosts, error, count } = await query.range(offset, offset + limit - 1);
     
     if (error) {
       console.error('[v0] Error fetching paginated posts:', error);
@@ -225,17 +225,15 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     }
     
     if (!allPosts || allPosts.length === 0) {
-      return { posts: [], total: 0 };
+      return { posts: [], total: count || 0 };
     }
     
-    // Filter by non-private users only
-    const filtered = allPosts
-      .filter(post => post.author && !post.author.is_private)
-      .slice(0, limit)
+    // Transform and return all posts
+    const transformed = allPosts
       .map(transformPostFromDB);
     
     return { 
-      posts: filtered, 
+      posts: transformed, 
       total: count || 0 
     };
   } catch (error) {
