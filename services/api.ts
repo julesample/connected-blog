@@ -194,7 +194,7 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     
     console.log(`[v0] Fetching paginated public posts - page: ${page}, limit: ${limit}, sort: ${sortBy}`);
     
-    // Build base query - don't filter by visibility if column doesn't exist
+    // Build base query - fetch all posts with author relationships
     let query = supabase
       .from('posts')
       .select(`
@@ -211,60 +211,27 @@ export const fetchPublicPostsPaginated = async (page: number = 1, limit: number 
     if (sortBy === 'newest') {
       query = query.order('created_at', { ascending: false });
     } else if (sortBy === 'trending') {
-      // For trending, we need to sort by created_at DESC but fetch more data
       query = query.order('created_at', { ascending: false });
     } else if (sortBy === 'most-liked' || sortBy === 'most-commented') {
-      // These require more complex sorting, for now sort by created_at
       query = query.order('created_at', { ascending: false });
     }
     
     // Apply pagination
-    const { data: posts, error, count } = await query.range(offset, offset + limit - 1);
+    const { data: allPosts, error, count } = await query.range(offset, offset + (limit * 2 - 1));
     
     if (error) {
       console.error('[v0] Error fetching paginated posts:', error);
-      // If visibility column doesn't exist, fetch without that filter
-      const { data: postsNoVisibility, error: errorNoVisibility, count: countNoVisibility } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          author:users!posts_author_id_fkey(username, is_private),
-          comments(
-            *,
-            author:users!comments_author_id_fkey(username)
-          ),
-          votes(vote_type, user:users!votes_user_id_fkey(username))
-        `, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-      
-      if (errorNoVisibility) {
-        console.error('[v0] Error fetching posts without visibility filter:', errorNoVisibility);
-        return { posts: [], total: 0 };
-      }
-      
-      if (!postsNoVisibility) {
-        return { posts: [], total: 0 };
-      }
-      
-      // Filter by private users and transform
-      const filtered = postsNoVisibility
-        .filter(post => post.author && !post.author.is_private)
-        .map(transformPostFromDB);
-      
-      return { 
-        posts: filtered, 
-        total: countNoVisibility || 0 
-      };
-    }
-    
-    if (!posts) {
       return { posts: [], total: 0 };
     }
     
-    // Filter by private users and transform
-    const filtered = posts
+    if (!allPosts || allPosts.length === 0) {
+      return { posts: [], total: 0 };
+    }
+    
+    // Filter by non-private users only
+    const filtered = allPosts
       .filter(post => post.author && !post.author.is_private)
+      .slice(0, limit)
       .map(transformPostFromDB);
     
     return { 
