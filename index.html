@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connected-Blog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+   <script src="https://cdn.tiny.cloud/1/bbf7tkn7ioraaze412j5m51on50pdoqnzrknvu5x4j0xf2kt/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+
+
+<script>   tinymce.init({
+    selector: 'textarea',
+    plugins: [
+      // Core editing features
+      'anchor', 'autolink', 'charmap', 'codesample', 'emoticons', 'image', 'link', 'lists', 'media', 'searchreplace', 'table', 'visualblocks', 'wordcount',
+      // Your account includes a free trial of TinyMCE premium features
+      // Try the most popular premium features until Jul 26, 2025:
+      'checklist', 'mediaembed', 'casechange', 'formatpainter', 'pageembed', 'a11ychecker', 'tinymcespellchecker', 'permanentpen', 'powerpaste', 'advtable', 'advcode', 'editimage', 'advtemplate', 'ai', 'mentions', 'tinycomments', 'tableofcontents', 'footnotes', 'mergetags', 'autocorrect', 'typography', 'inlinecss', 'markdown','importword', 'exportword', 'exportpdf'
+    ],
+    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+    tinycomments_mode: 'embedded',
+    tinycomments_author: 'Author name',
+    mergetags_list: [
+      { value: 'First.Name', title: 'First Name' },
+      { value: 'Email', title: 'Email' },
+    ],
+    ai_request: (request, respondWith) => respondWith.string(() => Promise.reject('See docs to implement AI Assistant')),
+  });</script>
+    
+    <script>
+
+
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                '50': '#eff6ff',
+                '100': '#dbeafe',
+                '200': '#bfdbfe',
+                '300': '#93c5fd',
+                '400': '#60a5fa',
+                '500': '#3b82f6',
+                '600': '#2563eb',
+                '700': '#1d4ed8',
+                '800': '#1e40af',
+                '900': '#1e3a8a',
+                '950': '#172554',
+              },
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 dark:bg-slate-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
